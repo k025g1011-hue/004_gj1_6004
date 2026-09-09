@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "Player.h"
 #include "MapChipField.h"
+#include "SoundManager.h"
 #include <algorithm>
 
 using namespace KamataEngine;
@@ -31,6 +32,9 @@ void Player::Reset(const Vector2& position) {
 	currentFrame_ = 0;
 	attackTimer_ = 0;
 
+	// ダッシュパラメータのリセット
+	ResetDashParams();
+
 	UpdateAnimation();
 }
 
@@ -59,6 +63,7 @@ void Player::OnDamaged() {
 	if (invincibleTimer_ > 0 || dashTimer_ > 0 || IsDead()) {
 		return;
 	}
+	SoundManager::GetInstance()->PlaySE("Damage", 0.3f);
 	--hp_;
 	invincibleTimer_ = kInvincibleDuration;
 	invincibleJustEnded_ = false;
@@ -89,15 +94,17 @@ void Player::InputMove() {
 	const bool pressLeft = input->PushKey(DIK_LEFT) || input->PushKey(DIK_A);
 	const bool pressJump = input->PushKey(DIK_SPACE) || input->PushKey(DIK_Z) || input->PushKey(DIK_W);
 	const bool pressDash = input->TriggerKey(DIK_LSHIFT) || input->TriggerKey(DIK_X);
-	const bool pressAttack = input->TriggerKey(DIK_F) || input->TriggerKey(DIK_C); // 例: FキーまたはCキーで攻撃
+	const bool pressAttack = input->TriggerKey(DIK_F) || input->TriggerKey(DIK_C);
 
 	if (pressAttack && attackTimer_ <= 0) {
+		SoundManager::GetInstance()->PlaySE("Stitch", 0.3f);
 		TriggerAttack();
 	}
 
 	if (dashTimer_ > 0) {
 		--dashTimer_;
-		velocity_.x = static_cast<float>(facing_) * kDashSpeed;
+		// ★ 変数 dashSpeed_ を使用
+		velocity_.x = static_cast<float>(facing_) * dashSpeed_;
 		velocity_.y = 0.0f;
 		return;
 	}
@@ -114,6 +121,7 @@ void Player::InputMove() {
 	velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
 
 	if (onGround_ && pressJump) {
+		SoundManager::GetInstance()->PlaySE("Jump", 0.3f);
 		velocity_.y = kJumpSpeed;
 		onGround_ = false;
 	} else if (!onGround_ && !pressJump && velocity_.y < 0.0f) {
@@ -122,7 +130,9 @@ void Player::InputMove() {
 
 	const bool canDash = onGround_ || !usedAirDash_;
 	if (pressDash && canDash) {
-		dashTimer_ = kDashDuration;
+		SoundManager::GetInstance()->PlaySE("Dash", 0.5f);
+		// ★ 変数 dashDuration_ を使用
+		dashTimer_ = dashDuration_;
 		if (!onGround_) {
 			usedAirDash_ = true;
 		}
@@ -137,7 +147,6 @@ void Player::InputMove() {
 }
 
 void Player::UpdateAnimation() {
-	// 1. 状態の更新
 	if (IsDead()) {
 		state_ = MotionState::kDead;
 	} else if (attackTimer_ > 0) {
@@ -149,49 +158,38 @@ void Player::UpdateAnimation() {
 		state_ = MotionState::kIdle;
 	}
 
-	// 2. フレームカウント・表示コマの計算
 	++animTimer_;
 	uint32_t activeTexture = 0;
 
 	switch (state_) {
 	case MotionState::kWalk: {
-		// 8フレームごとに次のコマへ (0 -> 1 -> 2 -> 3 -> 0)
 		currentFrame_ = (animTimer_ / 8) % 4;
 		activeTexture = (facing_ > 0) ? textures_.walkRight : textures_.walkLeft;
 		break;
 	}
 
 	case MotionState::kIdle: {
-		// 待機中は「歩きテクスチャの1コマ目」を使用
 		currentFrame_ = 0;
 		activeTexture = (facing_ > 0) ? textures_.walkRight : textures_.walkLeft;
 		break;
 	}
 
 	case MotionState::kAttack: {
-		// 4フレームごとに次のコマへ (0 -> 1 -> 2 -> 3)
 		currentFrame_ = std::min((16 - attackTimer_) / 4, 3);
 		activeTexture = (facing_ > 0) ? textures_.attackRight : textures_.attackLeft;
 		break;
 	}
 
 	case MotionState::kDead: {
-		// 6フレームごとに次のコマへ（最後は8コマ目で停止）
 		currentFrame_ = std::min(animTimer_ / 6, 7);
 		activeTexture = (facing_ > 0) ? textures_.deadRight : textures_.deadLeft;
 		break;
 	}
 	}
 
-	// 3. テクスチャと切り出し範囲の適用
 	if (sprite_) {
 		sprite_->SetTextureHandle(activeTexture);
-
-		// 画像シート上の切り出し左上座標（X）を計算
 		float srcX = static_cast<float>(currentFrame_) * kFrameWidth;
-
-		// スプライトシートの切り出し範囲（UV / SrcRect）を指定
-		// ※ KamataEngine の仕様に合わせて SetTextureRect / SetSrcRect を呼び出します
 		sprite_->SetTextureRect({srcX, 0.0f}, {kFrameWidth, kFrameHeight});
 	}
 }
@@ -205,7 +203,6 @@ void Player::Update(MapChipField* mapChipField) {
 		}
 	}
 
-	// 死亡していない場合のみ移動操作を受け付ける
 	if (!IsDead()) {
 		InputMove();
 	}
@@ -249,7 +246,6 @@ void Player::Update(MapChipField* mapChipField) {
 		onGround_ = false;
 	}
 
-	// アニメーション計算の更新
 	UpdateAnimation();
 }
 
@@ -258,13 +254,12 @@ void Player::Draw(const Vector2& camera) {
 		return;
 	}
 
-	// カラー（点滅やダッシュ色の演出）設定
 	if (invincibleTimer_ > 0 && (invincibleTimer_ / 2) % 2 == 0) {
 		sprite_->SetColor({0.4f, 0.8f, 1.0f, 0.4f});
 	} else if (dashTimer_ > 0) {
 		sprite_->SetColor({1.0f, 1.0f, 0.4f, 1.0f});
 	} else {
-		sprite_->SetColor({1.0f, 1.0f, 1.0f, 1.0f}); // 本来のスプライトの色を表示するため白(1.0)に変更
+		sprite_->SetColor({1.0f, 1.0f, 1.0f, 1.0f});
 	}
 
 	sprite_->SetPosition({position_.x - camera.x, position_.y - camera.y});

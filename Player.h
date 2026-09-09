@@ -1,4 +1,5 @@
 #pragma once
+
 #include "AABB2.h"
 #include "KamataEngine.h"
 
@@ -38,6 +39,17 @@ public:
 	int GetHp() const { return hp_; }
 	int GetMaxHp() const { return kMaxHp; }
 	bool IsDead() const { return hp_ <= 0; }
+
+	// ★ ボスステージ用：ダッシュの速度と時間を設定するセッター
+	void SetDashParams(float speed, int durationFrames) {
+		dashSpeed_ = speed;
+		dashDuration_ = durationFrames;
+	}
+	// ★ 通常のダッシュ性能に戻すリセット関数
+	void ResetDashParams() {
+		dashSpeed_ = kDefaultDashSpeed;
+		dashDuration_ = kDefaultDashDuration;
+	}
 
 	// 攻撃処理の呼び出し用
 	void TriggerAttack();
@@ -85,7 +97,13 @@ private:
 	static inline const float kLimitFallSpeed = 14.0f;
 	static inline const float kJumpSpeed = -16.0f;
 	static inline const float kJumpCut = 0.7f;
-	static inline const float kDashSpeed = 16.0f;
-	static inline const int kDashDuration = 16;
+
+	// ★ デフォルト値の設定
+	static inline const float kDefaultDashSpeed = 16.0f;
+	static inline const int kDefaultDashDuration = 16;
 	static inline const int kInvincibleDuration = 40;
+
+	// ★ 動的に変更可能にするダッシュパラメータ変数
+	float dashSpeed_ = kDefaultDashSpeed;
+	int dashDuration_ = kDefaultDashDuration;
 };

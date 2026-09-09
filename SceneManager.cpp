@@ -10,8 +10,8 @@
 
 void SceneManager::Initialize() {
 	fade_.Initialize();
-	//currentType_ = SceneType::kTitle;
-	currentType_ = SceneType::kBoss;
+	currentType_ = SceneType::kTitle;
+	//currentType_ = SceneType::kBoss;
 	currentScene_ = CreateScene(currentType_);
 	currentScene_->Initialize();
 }

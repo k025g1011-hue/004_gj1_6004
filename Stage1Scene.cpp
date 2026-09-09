@@ -1,4 +1,5 @@
 #include "Stage1Scene.h"
+#include "SoundManager.h"
 
 void Stage1Scene::Initialize() {
 	// 親クラス（GameScene）の共通初期化を実行（プレイヤー生成など）
@@ -6,4 +7,5 @@ void Stage1Scene::Initialize() {
 	SetStage(0); // ステージ1背景
 	// Stage1用マップCSVを読み込んで再構築
 	BuildWorld("Resources/stage1.csv");
+	SoundManager::GetInstance()->PlayBGM("NormalBGM");
 }

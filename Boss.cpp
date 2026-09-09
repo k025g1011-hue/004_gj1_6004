@@ -23,10 +23,10 @@ void Boss::Initialize(BossID id, const BossTextureSet& textures, const Vector2& 
 	// フェーズ初期設定
 	if (id_ == BossID::kCombined) {
 		phase_ = Phase::kPhase2_Combined;
-		maxHp_ = 40; // 合体時は強化HP
+		maxHp_ = 20; // 合体時は強化HP
 	} else {
 		phase_ = Phase::kPhase1_TwoBosses;
-		maxHp_ = 20; // 単体時HP
+		maxHp_ = 10; // 単体時HP
 	}
 	hp_ = maxHp_;
 
@@ -73,13 +73,10 @@ void Boss::Initialize(BossID id, const BossTextureSet& textures, const Vector2& 
 }
 
 AABB2 Boss::GetAABB() const {
-	// X軸は設定したマージンを使用
 	float marginX = boxMargin_.x;
-	float marginY = 0.0f; // ★ プレス時以外はY軸マージンなし（0）
+	float marginY = 0.0f;
 
-	// ★ プレス中のみ、Y軸（高さ）を 1/4（25%）小さくする
 	if (state_ == State::kPress) {
-		// 高さ 300px の 25% = 75px 縮小（上下から 37.5px ずつ詰める）
 		marginY = size_.y * 0.25f * 0.5f;
 	}
 
@@ -100,7 +97,6 @@ AABB2 Boss::GetAttackAABB() const {
 	Vector2 attackMin = position_;
 	Vector2 attackMax = {position_.x + size_.x, position_.y + size_.y};
 
-	// 攻撃判定を前方に引き伸ばす
 	if (isFacingLeft_) {
 		attackMin.x -= attackSize_.x;
 	} else {
@@ -119,9 +115,7 @@ void Boss::OnCinchHit(int damage) {
 	hitFlash_ = 10;
 }
 
-void Boss::ApplyKnockback(const Vector2& velocity) {
-	(void)velocity; // 固定ボスにつき無効
-}
+void Boss::ApplyKnockback(const Vector2& velocity) { (void)velocity; }
 
 void Boss::CombineTo(const Vector2& combinePos, const BossTextureSet& combinedTextures) {
 	id_ = BossID::kCombined;
@@ -147,17 +141,16 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 		if (!btn.isAlive)
 			continue;
 
-		btn.velocity.y += 0.45f; // 重力
+		btn.velocity.y += 0.45f;
 		btn.position.y += btn.velocity.y;
 
-		// マップ床との判定
 		if (mapChipField) {
 			AABB2 bAABB = btn.GetAABB();
 			float resolvedY = btn.position.y;
 			bool landed = false;
 			if (mapChipField->ResolveBlockY(bAABB, resolvedY, btn.velocity.y, landed)) {
 				if (landed)
-					btn.isAlive = false; // 床に着地したら消滅
+					btn.isAlive = false;
 			}
 		}
 
@@ -165,7 +158,6 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 			btn.isAlive = false;
 	}
 
-	// 不要になったボタンの消去
 	buttons_.erase(std::remove_if(buttons_.begin(), buttons_.end(), [](const FallingButton& b) { return !b.isAlive; }), buttons_.end());
 
 	// ★ 2. AI思考処理
@@ -175,9 +167,8 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 	position_.x += velocity_.x;
 	position_.y += velocity_.y;
 
-	// ジャンププレス中の処理（重力加算 ＋ プレイヤー方向への微移動）
 	if (state_ == State::kPress) {
-		velocity_.y += 0.55f; // 重力加算
+		velocity_.y += 0.55f;
 
 		if (player) {
 			const float kAirMoveSpeed = 1.5f;
@@ -205,7 +196,6 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 			moveDirX = -1.0f;
 
 		if (moveDirX != 0.0f && mapChipField->ResolveBlockX(aabb, resolvedX, moveDirX)) {
-			// X軸マージン分を引き戻す
 			position_.x = resolvedX - boxMargin_.x;
 			velocity_.x = 0.0f;
 
@@ -217,19 +207,19 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 		}
 
 		// --- Y軸の衝突判定 ---
-		aabb = GetAABB(); // 最新AABB再取得
+		aabb = GetAABB();
 		float resolvedY = aabb.min.y;
 		bool landed = false;
 
-		if (mapChipField->ResolveBlockY(aabb, resolvedY, velocity_.y, landed)) {
-			// ★ プレス時のみ Y軸マージン(37.5px)分を引き戻し、通常時は 0 なので補正なし
+		// ★ 第5引数に true を渡し、ボスは空中ブロック（一方向ブロック）をすり抜けて最下層のみ着地する
+		if (mapChipField->ResolveBlockY(aabb, resolvedY, velocity_.y, landed, true)) {
 			float marginY = (state_ == State::kPress) ? (size_.y * 0.25f * 0.5f) : 0.0f;
 			position_.y = resolvedY - marginY;
 
-			if (landed && velocity_.y > 0.0f) {
+			if (landed) {
 				velocity_.y = 0.0f;
 				if (state_ == State::kPress) {
-					state_ = State::kIdle; // 着地して通常状態に戻る
+					state_ = State::kIdle;
 					stateTimer_ = 50;
 					velocity_.x = 0.0f;
 					isAttacking_ = false;
@@ -238,7 +228,6 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 		}
 	}
 
-	// ★ 画面外・上空飛翔防止ガード
 	if (position_.y < 0.0f) {
 		position_.y = 0.0f;
 		if (velocity_.y < 0.0f) {
@@ -246,7 +235,6 @@ void Boss::Update(MapChipField* mapChipField, Player* player) {
 		}
 	}
 
-	// ★ 4. アニメーション更新
 	UpdateAnimation();
 }
 
@@ -258,7 +246,6 @@ void Boss::ProcessAI(Player* player) {
 	Vector2 myCenter = {position_.x + size_.x * 0.5f, position_.y + size_.y * 0.5f};
 	float distToPlayer = std::abs(pCenter.x - myCenter.x);
 
-	// 向きの自動更新（攻撃モーション中以外）
 	if (!isAttacking_ && player) {
 		isFacingLeft_ = (pCenter.x < myCenter.x);
 	}
@@ -275,23 +262,18 @@ void Boss::ProcessAI(Player* player) {
 			int randVal = rand() % 100;
 
 			if (phase_ == Phase::kPhase1_TwoBosses) {
-				// 【1. 近距離（280px未満）：踏み込みパンチ】
 				if (distToPlayer < 280.0f) {
 					state_ = State::kPunch;
 					stateTimer_ = 32;
 					isAttacking_ = true;
 					attackSize_ = {120.0f, 150.0f};
-				}
-				// 【2. 超遠距離（500px以上）：確定で突進！】
-				else if (distToPlayer >= 500.0f) {
+				} else if (distToPlayer >= 500.0f) {
 					state_ = State::kCharge;
 					stateTimer_ = 80;
 					velocity_.x = isFacingLeft_ ? -7.0f : 7.0f;
 					isAttacking_ = true;
 					attackSize_ = {40.0f, 0.0f};
-				}
-				// 【3. 中距離（280px〜500px）：突進(50%) or プレス(50%)】
-				else if (randVal < 50) {
+				} else if (randVal < 50) {
 					state_ = State::kCharge;
 					stateTimer_ = 80;
 					velocity_.x = isFacingLeft_ ? -7.0f : 7.0f;
@@ -303,31 +285,44 @@ void Boss::ProcessAI(Player* player) {
 					velocity_.x = 0.0f;
 					isAttacking_ = true;
 				}
+				attackCooldown_ = 180;
+
 			} else {
-				// 第2フェーズの処理（変更なし）
-				if (randVal < 35) {
-					state_ = State::kRainButtons;
-					stateTimer_ = 60;
-				} else if (distToPlayer < 280.0f && randVal < 70) {
-					state_ = State::kPunch;
-					stateTimer_ = 32;
-					isAttacking_ = true;
-					attackSize_ = {180.0f, 200.0f};
+				if (distToPlayer < 280.0f) {
+					if (randVal < 70) {
+						state_ = State::kPunch;
+						stateTimer_ = 28;
+						isAttacking_ = true;
+						attackSize_ = {180.0f, 200.0f};
+					} else {
+						state_ = State::kPress;
+						velocity_.y = -13.0f;
+						velocity_.x = 0.0f;
+						isAttacking_ = true;
+					}
 				} else {
-					state_ = State::kPress;
-					velocity_.y = -13.0f;
-					velocity_.x = 0.0f;
-					isAttacking_ = true;
+					if (randVal < 40) {
+						state_ = State::kCharge;
+						stateTimer_ = 90;
+						velocity_.x = isFacingLeft_ ? -10.0f : 10.0f;
+						isAttacking_ = true;
+						attackSize_ = {60.0f, 0.0f};
+					} else if (randVal < 70) {
+						state_ = State::kPress;
+						velocity_.y = -13.0f;
+						velocity_.x = 0.0f;
+						isAttacking_ = true;
+					} else {
+						state_ = State::kRainButtons;
+						stateTimer_ = 60;
+					}
 				}
+				attackCooldown_ = 90;
 			}
 
-			// 技を出したら約3秒間（180フレーム）の冷却
-			attackCooldown_ = 180;
-
 		} else {
-			// クールダウン中や技が出せない時は歩きへ移行
 			state_ = State::kWalk;
-			stateTimer_ = 0; // 歩き用タイマーをリセット
+			stateTimer_ = 0;
 		}
 		break;
 
@@ -335,25 +330,18 @@ void Boss::ProcessAI(Player* player) {
 		if (player) {
 			float speed = (phase_ == Phase::kPhase2_Combined) ? 2.2f : 1.4f;
 			velocity_.x = isFacingLeft_ ? -speed : speed;
-
-			// 歩いた時間を加算
 			stateTimer_++;
 		}
 
-		// 【アイデア3の適用】
-		// ・間合い（280px）に入ってきた
-		// ・または 2.5秒（150フレーム）以上逃げられ続けて歩きっぱなしになっている
-		// かつ、クールダウンが明けていれば立ち止まって次の技へ！
 		if ((distToPlayer < 280.0f || stateTimer_ > 150) && attackCooldown_ <= 0) {
 			state_ = State::kIdle;
-			stateTimer_ = 15; // 攻撃前の小さな溜め（0.25秒）
+			stateTimer_ = 15;
 		}
 		break;
 
 	case State::kPunch:
 		if (stateTimer_ > 0) {
 			--stateTimer_;
-			// 出始めの20フレーム間だけ前進して踏み込む
 			if (stateTimer_ > 12) {
 				const float kPunchStepSpeed = 3.5f;
 				velocity_.x = isFacingLeft_ ? -kPunchStepSpeed : kPunchStepSpeed;
@@ -384,8 +372,8 @@ void Boss::ProcessAI(Player* player) {
 		if (stateTimer_ % 12 == 0 && player) {
 			FallingButton btn;
 			float spawnX = pCenter.x + static_cast<float>((rand() % 360) - 180);
-			btn.position = {spawnX, pCenter.y - 450.0f};
-			btn.velocity = {0.0f, 1.5f};
+			btn.position = {spawnX, pCenter.y - 250.0f};
+			btn.velocity = {0.0f, 2.0f};
 			btn.size = {40.0f, 40.0f};
 			btn.isAlive = true;
 			buttons_.push_back(btn);
@@ -400,6 +388,10 @@ void Boss::ProcessAI(Player* player) {
 		break;
 
 	case State::kPress:
+		// 着地判定はUpdate()側のマップ衝突処理(ResolveBlockYのlanded)に任せる。
+		// ここで速度ベースの疑似判定をすると、上昇→下降の切り替わり地点(頂点)で
+		// velocity_.yがほぼ0になり「着地した」と誤検出して空中で静止するバグになるため、
+		// このcaseでは状態遷移を行わない。
 		break;
 	}
 }
@@ -418,35 +410,29 @@ void Boss::DrawDebugFrame(const Vector2& camera) {
 	auto drawRectLines = [&](const Vector2& pos, const Vector2& sz, const Vector4& color, int offset) {
 		Vector2 screenPos = {pos.x - camera.x, pos.y - camera.y};
 
-		// 上辺
 		debugLines_[offset + 0]->SetPosition(screenPos);
 		debugLines_[offset + 0]->SetSize({sz.x, kLineThickness});
 		debugLines_[offset + 0]->SetColor(color);
 		debugLines_[offset + 0]->Draw();
 
-		// 下辺
 		debugLines_[offset + 1]->SetPosition({screenPos.x, screenPos.y + sz.y - kLineThickness});
 		debugLines_[offset + 1]->SetSize({sz.x, kLineThickness});
 		debugLines_[offset + 1]->SetColor(color);
 		debugLines_[offset + 1]->Draw();
 
-		// 左辺
 		debugLines_[offset + 2]->SetPosition(screenPos);
 		debugLines_[offset + 2]->SetSize({kLineThickness, sz.y});
 		debugLines_[offset + 2]->SetColor(color);
 		debugLines_[offset + 2]->Draw();
 
-		// 右辺
 		debugLines_[offset + 3]->SetPosition({screenPos.x + sz.x - kLineThickness, screenPos.y});
 		debugLines_[offset + 3]->SetSize({kLineThickness, sz.y});
 		debugLines_[offset + 3]->SetColor(color);
 		debugLines_[offset + 3]->Draw();
 	};
 
-	// 1. 緑色枠: 画像サイズ (200x300)
 	drawRectLines(position_, size_, {0.0f, 1.0f, 0.0f, 1.0f}, 0);
 
-	// 2. 赤色枠: マージン縮小後の実際の当たり判定 (GetAABB)
 	AABB2 aabb = GetAABB();
 	Vector2 aabbPos = aabb.min;
 	Vector2 aabbSize = {aabb.max.x - aabb.min.x, aabb.max.y - aabb.min.y};

@@ -1,6 +1,7 @@
 #include "Enemy.h"
 #include "MapChipField.h"
 #include "Player.h"
+#include "SoundManager.h"
 #include <cmath>
 
 using namespace KamataEngine;
@@ -57,6 +58,7 @@ void Enemy::OnCinchHit(int damage) {
 		return;
 	}
 	hp_ -= damage;
+	SoundManager::GetInstance()->PlaySE("Hit", 0.3f);
 	if (hp_ < 0) {
 		hp_ = 0;
 	}

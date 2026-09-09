@@ -31,7 +31,13 @@ std::map<std::string, MapChipType> mapChipTable = {
 bool IsOneWayBlock(MapChipType type) { return (type >= MapChipType::kBuildingBlocksC && type <= MapChipType::kButtonBlocksR); }
 
 // 壁または床として機能するブロック種別か判定するヘルパー
-bool IsSolidBlock(MapChipType type) { return type == MapChipType::kBlock || IsOneWayBlock(type); }
+bool IsSolidBlock(MapChipType type, bool isBoss = false) {
+	// ボスの場合、一方向ブロック（空中ブロック）は床として判定しない（すり抜ける）
+	if (isBoss) {
+		return type == MapChipType::kBlock; // kBlock（最下層などの通常ブロック）のみ判定
+	}
+	return type == MapChipType::kBlock || IsOneWayBlock(type);
+}
 } // namespace
 
 void MapChipField::LoadMapChipCsv(const std::string& filePath) {
@@ -137,7 +143,8 @@ bool MapChipField::ResolveBlockX(AABB2& aabb, float& outX, float velocityX) cons
 	return false;
 }
 
-bool MapChipField::ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool& landed) const {
+// ★ isBoss 引数を追加
+bool MapChipField::ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool& landed, bool isBoss) const {
 	landed = false;
 
 	IndexSet minI = GetMapChipIndexSetByPosition(aabb.min);
@@ -147,7 +154,8 @@ bool MapChipField::ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool
 		for (int x = minI.xIndex; x <= maxI.xIndex; ++x) {
 			MapChipType type = GetMapChipTypeByIndex(x, y);
 
-			if (!IsSolidBlock(type)) {
+			// ★ isBoss を渡すように修正
+			if (!IsSolidBlock(type, isBoss)) {
 				continue;
 			}
 

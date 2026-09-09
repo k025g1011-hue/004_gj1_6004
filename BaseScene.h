@@ -1,5 +1,7 @@
 // BaseScene.h
 #pragma once
+#include "KamataEngine.h"
+#include "Player.h"
 
 class BaseScene {
 public:

@@ -374,6 +374,12 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 		}
 	}
 
+	// ★ ２体のボスが生成されたら、お互いを「相方」として登録！
+	if (bossA_ && bossB_) {
+		bossA_->SetPartner(bossB_);
+		bossB_->SetPartner(bossA_);
+	}
+
 	// マップの横幅を計算してプレイヤーの移動限界（Bounds）を設定
 	const float mapWidth = static_cast<float>(h) * MapChipField::kTileWidth;
 	player_->SetMapBounds(0.0f, mapWidth);
@@ -519,35 +525,49 @@ void GameScene::UpdateBossPhase() {
 	}
 
 	// ボスが両方存在しない場合はスキップ
-	if (!bossA_ && !bossB_) {
+	if (!bossA_ || !bossB_) {
 		return;
 	}
 
-	bool isBossADead = bossA_ && bossA_->IsDead();
-	bool isBossBDead = bossB_ && bossB_->IsDead();
+	// 1. どちらかが死亡したか確認
+	bool isBossADead = bossA_->IsDead();
+	bool isBossBDead = bossB_->IsDead();
 
-	if (isBossADead || isBossBDead) {
-		// 生き残る方と倒れる方を特定
-		Boss* survivor = isBossADead ? bossB_ : bossA_;
-		Boss* victim = isBossADead ? bossA_ : bossB_;
+	// 2. どちらかのHPが半分以下になったか確認
+	bool isBossAHalf = (bossA_->GetHp() <= bossA_->GetMaxHp() / 2);
+	bool isBossBHalf = (bossB_->GetHp() <= bossB_->GetMaxHp() / 2);
+
+	// 「どちらかが死亡」または「どちらかのHPが半分以下」になった場合に合体発動
+	if (isBossADead || isBossBDead || isBossAHalf || isBossBHalf) {
+
+		// 基本は Boss A を survivor（生き残り・合体主体）とする
+		Boss* survivor = bossA_;
+		Boss* victim = bossB_;
+
+		// Boss A が死亡、あるいは Boss A のHPが半分以下（かつ Bはまだ大丈夫）なら Boss B を主体にする
+		if (isBossADead || (isBossAHalf && !isBossBHalf)) {
+			survivor = bossB_;
+			victim = bossA_;
+		}
 
 		if (survivor) {
-			// 生き残ったボスの位置で合体処理を実行
+			// 生き残った（ベースとなる）ボスの位置で合体処理を実行
 			Vector2 combinePos = survivor->GetPosition();
 			survivor->CombineTo(combinePos, bossTextures_.combined);
 		}
 
 		if (victim) {
-			// 縫い合わせ・攻撃対象リストから倒れたボスを削除
+			// 縫い合わせ・攻撃対象リストから吸収される側のボスを削除
 			targets_.erase(std::remove(targets_.begin(), targets_.end(), victim), targets_.end());
-			delete victim;
-		}
 
-		// ポインタの整理
-		if (isBossADead) {
-			bossA_ = nullptr;
-		} else {
-			bossB_ = nullptr;
+			// メンバー変数のポインタを安全にクリア
+			if (victim == bossA_) {
+				bossA_ = nullptr;
+			} else {
+				bossB_ = nullptr;
+			}
+
+			delete victim;
 		}
 
 		// 第2フェーズフラグをON

@@ -10,7 +10,7 @@ void ClearScene::Initialize() {
 	// シーン開始後、30フレーム（約0.5秒）はキー入力を受け付けない
 	inputWaitTimer_ = 30;
 
-	SoundManager::GetInstance()->PlayBGM("Clear", true, 0.3f);
+	SoundManager::GetInstance()->PlayBGM("NormalBGM");
 
 	// クリア画像のロード（ファイル名は画像素材に合わせて変更してください）
 	bgTextureHandle_ = TextureManager::Load("GameClear.png");
@@ -33,7 +33,7 @@ void ClearScene::Update() {
 
 	// SPACEキーでシーン終了（タイトルへ戻る等のトリガー）
 	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
-		SoundManager::GetInstance()->PlaySE("Select", 0.5f);
+		SoundManager::GetInstance()->PlaySE("SceanTransition", 0.5f);
 
 		// SceneManager が全自動で暗転 ➔ 次のシーン移行 ➔ 明転
 		isFinished_ = true;

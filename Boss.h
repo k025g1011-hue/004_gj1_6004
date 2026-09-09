@@ -1,4 +1,5 @@
 #pragma once
+
 #include "BossAnimation.h"
 #include "KamataEngine.h"
 #include "StitchTarget.h"
@@ -51,6 +52,9 @@ public:
 	void Update(MapChipField* mapChipField, Player* player = nullptr);
 	void Draw(const KamataEngine::Vector2& camera) override;
 
+	// ★ 相方ボスのポインタをセット
+	void SetPartner(Boss* partner) { partner_ = partner; }
+
 	// StitchTarget 継承メンバ
 	AABB2 GetAABB() const override;
 	KamataEngine::Vector2 GetPosition() const override { return position_; }
@@ -97,6 +101,8 @@ private:
 	Phase phase_ = Phase::kPhase1_TwoBosses;
 	State state_ = State::kIdle;
 
+	Boss* partner_ = nullptr; // ★ 相方ボスへの参照
+
 	BossTextureSet textures_{};
 	KamataEngine::Sprite* sprite_ = nullptr;
 
@@ -104,8 +110,10 @@ private:
 	KamataEngine::Vector2 velocity_{};
 	KamataEngine::Vector2 size_{200.0f, 300.0f}; // 200x300 固定
 
-	int maxHp_ = 20;
-	int hp_ = 20;
+	/*int maxHp_ = 20;
+	int hp_ = 20;*/
+	int maxHp_ = 5;
+	int hp_ = 5;
 	int hitFlash_ = 0;
 
 	// 行動制御用

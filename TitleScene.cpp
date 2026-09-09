@@ -7,7 +7,8 @@ void TitleScene::Initialize() {
 	// フラグ初期化（BaseSceneのメンバ変数）
 	isFinished_ = false;
 
-	SoundManager::GetInstance()->PlayBGM("Title", true, 0.2f);
+	SoundManager::GetInstance()->PlayBGM("NormalBGM");
+
 
 	// カメラ初期化
 	camera_.Initialize();
@@ -27,7 +28,7 @@ void TitleScene::Initialize() {
 void TitleScene::Update() {
 	// SPACEキーが押されたら次のシーンへ移行
 	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
-		SoundManager::GetInstance()->PlaySE("Select", 0.5f);
+		SoundManager::GetInstance()->PlaySE("SceanTransition", 0.5f);
 
 		// SceneManager が暗転フェードアウト ➔ 次のシーン移行 ➔ 明転フェードイン
 		isFinished_ = true;

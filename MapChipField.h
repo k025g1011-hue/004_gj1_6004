@@ -7,15 +7,15 @@
 
 enum class MapChipType {
 	kBlank = 0,            // 空白
-	kBlock = 1,	           // ブロック
+	kBlock = 1,            // ブロック
 	kPlayer = 2,           // プレイヤー
 	kFodder = 3,           // 雑魚敵
-	kDoor = 4,	           // ドア
-	kStake = 5,	           // 杭
-	kBoss = 6,	           // ボス
-	kFlyer = 7,	           // 飛行敵
+	kDoor = 4,             // ドア
+	kStake = 5,            // 杭
+	kBoss = 6,             // ボス
+	kFlyer = 7,            // 飛行敵
 	kRanged = 8,           // 遠距離敵
-	kHeavy = 9,	           // 重装備敵
+	kHeavy = 9,            // 重装備敵
 	kBuildingBlocksC = 10, // stage1 BlocksC
 	kBuildingBlocksL = 11, // stage1 BlocksL
 	kBuildingBlocksR = 12, // stage1 BlocksR
@@ -49,7 +49,10 @@ public:
 	Rect GetRectByIndex(int xIndex, int yIndex) const;
 	bool OverlapsBlock(const AABB2& aabb) const;
 	bool ResolveBlockX(AABB2& aabb, float& outX, float velocityX) const;
-	bool ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool& landed) const;
+
+	// ★ 引数の末尾に isBoss を追加
+	bool ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool& landed, bool isBoss = false) const;
+
 	float SnapFeetToFloor(float x, float height) const;
 
 	uint32_t GetNumBlockHorizontal() const { return numHorizontal_; }

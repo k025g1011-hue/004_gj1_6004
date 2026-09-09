@@ -32,7 +32,7 @@ void TutorialScene::Initialize() {
 	hintSprite_ = Sprite::Create(hintTextures_[0], {kHintX, kHintY});
 	hintSprite_->SetSize({kHintW, kHintH});
 
-	SoundManager::GetInstance()->PlayBGM("Tutorial", true, 0.3f);
+	SoundManager::GetInstance()->PlayBGM("NormalBGM");
 }
 
 void TutorialScene::UpdateHint() {

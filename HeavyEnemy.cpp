@@ -2,6 +2,7 @@
 #include "HeavyEnemy.h"
 #include "MapChipField.h"
 #include "Player.h"
+#include "SoundManager.h"
 #include <algorithm>
 #include <cmath>
 
@@ -58,6 +59,7 @@ void HeavyEnemy::OnCinchHit(int damage) {
 	if (hp_ <= 0) {
 		return;
 	}
+	SoundManager::GetInstance()->PlaySE("Hit", 0.3f);
 	hp_ -= damage;
 	if (hp_ < 0) {
 		hp_ = 0;

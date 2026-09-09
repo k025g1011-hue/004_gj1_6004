@@ -1,4 +1,5 @@
 #include "GameOverScene.h"
+#include "SoundManager.h"
 
 using namespace KamataEngine;
 
@@ -17,11 +18,13 @@ void GameOverScene::Initialize() {
 	}
 
 	bgSprite_->SetSize({1280.0f, 720.0f});
+	SoundManager::GetInstance()->PlayBGM("NormalBGM");
 }
 
 void GameOverScene::Update() {
 	Input* input = Input::GetInstance();
 	if (input->TriggerKey(DIK_SPACE)) {
+		SoundManager::GetInstance()->PlaySE("SceanTransition", 0.5f);
 		isFinished_ = true;
 	}
 }

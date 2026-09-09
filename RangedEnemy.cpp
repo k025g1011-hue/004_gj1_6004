@@ -1,6 +1,7 @@
 #include "RangedEnemy.h"
 #include "MapChipField.h"
 #include "Player.h"
+#include "SoundManager.h"
 #include <algorithm>
 #include <cmath>
 
@@ -51,6 +52,7 @@ AABB2 RangedEnemy::GetAABB() const {
 void RangedEnemy::OnCinchHit(int damage) {
 	if (hp_ <= 0)
 		return;
+	SoundManager::GetInstance()->PlaySE("Hit", 0.3f);
 	hp_ -= damage;
 	if (hp_ < 0)
 		hp_ = 0;
@@ -149,6 +151,7 @@ void RangedEnemy::Update(MapChipField* mapChipField, Player* player) {
 	if (!isCinching_ && player) {
 		--shotTimer_;
 		if (shotTimer_ <= 0) {
+			SoundManager::GetInstance()->PlaySE("ArrowEnemy", 0.4f);
 			Shoot(player);
 			shotTimer_ = isPinch ? kPinchShotInterval : kNormalShotInterval;
 		}
