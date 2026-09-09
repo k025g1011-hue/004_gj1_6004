@@ -849,11 +849,11 @@ void GameScene::Draw() {
 
 	if (bossA_) {
 		bossA_->Draw(cam);
-		bossA_->DrawDebugFrame(cam); // ★ デバッグ枠描画
+		//bossA_->DrawDebugFrame(cam); // ★ デバッグ枠描画
 	}
 	if (bossB_) {
 		bossB_->Draw(cam);
-		bossB_->DrawDebugFrame(cam);
+		//bossB_->DrawDebugFrame(cam);
 	}
 	for (Enemy* enemy : fodder_) {
 		if (enemy)

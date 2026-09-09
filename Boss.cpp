@@ -401,43 +401,43 @@ void Boss::UpdateAnimation() {
 	currentFrame_ = (animTimer_ / kFrameInterval) % maxFrames_;
 }
 
-void Boss::DrawDebugFrame(const Vector2& camera) {
-	if (hp_ <= 0 || !debugLines_[0])
-		return;
-
-	const float kLineThickness = 2.0f;
-
-	auto drawRectLines = [&](const Vector2& pos, const Vector2& sz, const Vector4& color, int offset) {
-		Vector2 screenPos = {pos.x - camera.x, pos.y - camera.y};
-
-		debugLines_[offset + 0]->SetPosition(screenPos);
-		debugLines_[offset + 0]->SetSize({sz.x, kLineThickness});
-		debugLines_[offset + 0]->SetColor(color);
-		debugLines_[offset + 0]->Draw();
-
-		debugLines_[offset + 1]->SetPosition({screenPos.x, screenPos.y + sz.y - kLineThickness});
-		debugLines_[offset + 1]->SetSize({sz.x, kLineThickness});
-		debugLines_[offset + 1]->SetColor(color);
-		debugLines_[offset + 1]->Draw();
-
-		debugLines_[offset + 2]->SetPosition(screenPos);
-		debugLines_[offset + 2]->SetSize({kLineThickness, sz.y});
-		debugLines_[offset + 2]->SetColor(color);
-		debugLines_[offset + 2]->Draw();
-
-		debugLines_[offset + 3]->SetPosition({screenPos.x + sz.x - kLineThickness, screenPos.y});
-		debugLines_[offset + 3]->SetSize({kLineThickness, sz.y});
-		debugLines_[offset + 3]->SetColor(color);
-		debugLines_[offset + 3]->Draw();
-	};
-
-	drawRectLines(position_, size_, {0.0f, 1.0f, 0.0f, 1.0f}, 0);
-
-	AABB2 aabb = GetAABB();
-	Vector2 aabbPos = aabb.min;
-	Vector2 aabbSize = {aabb.max.x - aabb.min.x, aabb.max.y - aabb.min.y};
-	drawRectLines(aabbPos, aabbSize, {1.0f, 0.0f, 0.0f, 1.0f}, 4);
-}
+//void Boss::DrawDebugFrame(const Vector2& camera) {
+//	if (hp_ <= 0 || !debugLines_[0])
+//		return;
+//
+//	const float kLineThickness = 2.0f;
+//
+//	auto drawRectLines = [&](const Vector2& pos, const Vector2& sz, const Vector4& color, int offset) {
+//		Vector2 screenPos = {pos.x - camera.x, pos.y - camera.y};
+//
+//		debugLines_[offset + 0]->SetPosition(screenPos);
+//		debugLines_[offset + 0]->SetSize({sz.x, kLineThickness});
+//		debugLines_[offset + 0]->SetColor(color);
+//		debugLines_[offset + 0]->Draw();
+//
+//		debugLines_[offset + 1]->SetPosition({screenPos.x, screenPos.y + sz.y - kLineThickness});
+//		debugLines_[offset + 1]->SetSize({sz.x, kLineThickness});
+//		debugLines_[offset + 1]->SetColor(color);
+//		debugLines_[offset + 1]->Draw();
+//
+//		debugLines_[offset + 2]->SetPosition(screenPos);
+//		debugLines_[offset + 2]->SetSize({kLineThickness, sz.y});
+//		debugLines_[offset + 2]->SetColor(color);
+//		debugLines_[offset + 2]->Draw();
+//
+//		debugLines_[offset + 3]->SetPosition({screenPos.x + sz.x - kLineThickness, screenPos.y});
+//		debugLines_[offset + 3]->SetSize({kLineThickness, sz.y});
+//		debugLines_[offset + 3]->SetColor(color);
+//		debugLines_[offset + 3]->Draw();
+//	};
+//
+//	drawRectLines(position_, size_, {0.0f, 1.0f, 0.0f, 1.0f}, 0);
+//
+//	AABB2 aabb = GetAABB();
+//	Vector2 aabbPos = aabb.min;
+//	Vector2 aabbSize = {aabb.max.x - aabb.min.x, aabb.max.y - aabb.min.y};
+//	drawRectLines(aabbPos, aabbSize, {1.0f, 0.0f, 0.0f, 1.0f}, 4);
+//}
 
 void Boss::Draw(const Vector2& camera) {
 	if (!sprite_ || hp_ <= 0)

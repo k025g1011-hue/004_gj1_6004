@@ -86,8 +86,8 @@ public:
 	// 合体処理
 	void CombineTo(const KamataEngine::Vector2& combinePos, const BossTextureSet& combinedTextures);
 
-	// ★ デバッグ用の枠線描画（緑＝200x300本体枠、赤＝実判定AABB）
-	void DrawDebugFrame(const KamataEngine::Vector2& camera);
+	//// ★ デバッグ用の枠線描画（緑＝200x300本体枠、赤＝実判定AABB）
+	//void DrawDebugFrame(const KamataEngine::Vector2& camera);
 
 	// ★ 当たり判定のサイズ調整用（例: 左右20px、上下10px縮小）
 	void SetBoxMargin(const KamataEngine::Vector2& margin) { boxMargin_ = margin; }
