@@ -142,7 +142,8 @@ void HookStitch::ResolveCinch(const Vector2& centroid) {
 		if (!target) {
 			continue;
 		}
-		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer) {
+		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer &&
+		    target->GetKind() != StitchTarget::Kind::kRanged && target->GetKind() != StitchTarget::Kind::kHeavy) {
 			continue;
 		}
 		target->OnCinchHit(damage);

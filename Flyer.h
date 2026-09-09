@@ -67,7 +67,7 @@ private:
 	KamataEngine::Vector2 chargeTargetPos_{};
 	float chargeProgress_ = 0.0f;
 
-	static inline const float kScreenWidth = 1280.0f;
+	static inline const float kScreenWidth = 2560.0f;
 	static inline const float kMarginX = 100.0f;
 
 	int nextAttackInterval_ = 180;

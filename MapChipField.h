@@ -14,6 +14,8 @@ enum class MapChipType {
 	kStake = 5,
 	kBoss = 6,
 	kFlyer = 7,
+	kRanged = 8,
+	kHeavy = 9,
 };
 
 class MapChipField {

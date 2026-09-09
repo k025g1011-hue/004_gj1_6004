@@ -28,6 +28,16 @@ GameScene::~GameScene() {
 		delete flyerHpBack_[i];
 		delete flyerHpFill_[i];
 	}
+
+	for (int i = 0; i < kMaxRangedUi; ++i) {
+		delete rangedHpBack_[i];
+		delete rangedHpFill_[i];
+	}
+
+	for (int i = 0; i < kMaxHeavyUi; ++i) {
+		delete heavyHpBack_[i];
+		delete heavyHpFill_[i];
+	}
 }
 
 void GameScene::ClearCurrentActors() {
@@ -50,6 +60,18 @@ void GameScene::ClearCurrentActors() {
 	}
 	flyers_.clear();
 	flyerSpawns_.clear();
+	for (RangedEnemy* ranged : rangedEnemies_) {
+		delete ranged;
+	}
+	rangedEnemies_.clear();
+	rangedEnemySpawns_.clear();
+
+	for (HeavyEnemy* heavy : heavyEnemies_) {
+		delete heavy;
+	}
+	heavyEnemies_.clear();
+	heavyEnemySpawns_.clear();
+
 	targets_.clear();
 	world_.doors.clear();
 
@@ -84,6 +106,16 @@ void GameScene::Initialize() {
 	for (int i = 0; i < kMaxFlyerUi; ++i) {
 		flyerHpBack_[i] = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
 		flyerHpFill_[i] = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
+	}
+
+	for (int i = 0; i < kMaxRangedUi; ++i) {
+		rangedHpBack_[i] = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
+		rangedHpFill_[i] = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
+	}
+
+	for (int i = 0; i < kMaxHeavyUi; ++i) {
+		heavyHpBack_[i] = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
+		heavyHpFill_[i] = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
 	}
 
 	player_ = new Player();
@@ -150,7 +182,25 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 				flyers_.push_back(flyer);
 				flyerSpawns_.push_back(spawn);
 				targets_.push_back(flyer);
-			}else if (type == MapChipType::kDoor) {
+			} else if (type == MapChipType::kRanged) { 
+				Vector2 spawn = cell;
+				spawn.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 80.0f);
+
+				RangedEnemy* ranged = new RangedEnemy();
+				ranged->Initialize(whiteTexture_, whiteTexture_, spawn);
+				rangedEnemies_.push_back(ranged);
+				targets_.push_back(ranged);
+			} else if (type == MapChipType::kHeavy) {
+				EnemySpawn spawn;
+				spawn.position = cell;
+				spawn.position.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 100.0f);
+
+				HeavyEnemy* heavy = new HeavyEnemy();
+				heavy->Initialize(whiteTexture_, spawn.position);
+				heavyEnemies_.push_back(heavy);
+				heavyEnemySpawns_.push_back(spawn);
+				targets_.push_back(heavy);
+			} else if (type == MapChipType::kDoor) {
 				DoorDesc door;
 				door.x = cell.x;
 				door.y = cell.y;
@@ -231,6 +281,19 @@ bool GameScene::IsStageCleared() const {
 			return false;
 		}
 	}
+
+	for (const RangedEnemy* ranged : rangedEnemies_) {
+		if (ranged && !ranged->IsDead()) {
+			return false;
+		}
+	}
+
+	for (const HeavyEnemy* heavy : heavyEnemies_) {
+		if (heavy && !heavy->IsDead()) {
+			return false;
+		}
+	}
+
 	return true;
 }
 
@@ -278,13 +341,31 @@ void GameScene::CheckPlayerHits() {
 	for (StitchTarget* target : targets_) {
 		if (!target || target->IsDead())
 			continue;
-		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer) {
+		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer &&
+		    target->GetKind() != StitchTarget::Kind::kRanged && target->GetKind() != StitchTarget::Kind::kHeavy) {
 			continue;
 		}
 		if (IsCollision(playerAABB, target->GetAABB())) {
 			player_->OnDamaged();
 			hookStitch_->Clear();
 			break;
+		}
+	}
+	// 2. 遠距離敵が撃った弾との衝突判定
+	for (RangedEnemy* ranged : rangedEnemies_) {
+		if (!ranged || ranged->IsDead())
+			continue;
+
+		for (auto& bullet : ranged->GetBullets()) {
+			if (!bullet.isAlive)
+				continue;
+
+			if (IsCollision(playerAABB, bullet.GetAABB())) {
+				bullet.isAlive = false; // 弾消滅
+				player_->OnDamaged();
+				hookStitch_->Clear();
+				return;
+			}
 		}
 	}
 }
@@ -295,7 +376,7 @@ void GameScene::PushPlayerOutOfBosses() {
 	for (StitchTarget* target : targets_) {
 		if (!target || target->IsDead())
 			continue;
-		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer) {
+		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer && target->GetKind() != StitchTarget::Kind::kRanged && target->GetKind() != StitchTarget::Kind::kHeavy) {
 			continue;
 		}
 		AABB2 b = target->GetAABB();
@@ -343,7 +424,14 @@ void GameScene::Update() {
 		if (flyer)
 			flyer->Update(mapChipField_, player_);
 	}
-
+	for (RangedEnemy* ranged : rangedEnemies_) {
+		if (ranged)
+			ranged->Update(mapChipField_, player_);
+	}
+	for (HeavyEnemy* heavy : heavyEnemies_) {
+		if (heavy)
+			heavy->Update(mapChipField_, player_);
+	}
 	// 敵同士の押し返し・反転処理
 	Enemy::CheckEnemyCollisions(fodder_);
 
@@ -470,6 +558,48 @@ void GameScene::DrawHp() {
 		flyerHpFill_[i]->SetSize({barW * ratio, 8.0f});
 		flyerHpFill_[i]->Draw();
 	}
+	// 遠距離敵のHPバー描画
+	for (size_t i = 0; i < rangedEnemies_.size() && i < static_cast<size_t>(kMaxRangedUi); ++i) {
+		RangedEnemy* ranged = rangedEnemies_[i];
+		if (!ranged || ranged->IsDead())
+			continue;
+
+		const float barW = ranged->GetSize().x;
+		const float x = ranged->GetPosition().x - cam.x;
+		const float y = ranged->GetPosition().y - 14.0f - cam.y;
+		const float ratio = static_cast<float>(ranged->GetHp()) / static_cast<float>(ranged->GetMaxHp());
+
+		rangedHpBack_[i]->SetRotation(0.0f);
+		rangedHpBack_[i]->SetColor({0.1f, 0.1f, 0.1f, 0.9f});
+		rangedHpBack_[i]->SetPosition({x, y});
+		rangedHpBack_[i]->SetSize({barW, 8.0f});
+		rangedHpBack_[i]->Draw();
+
+		rangedHpFill_[i]->SetRotation(0.0f);
+		rangedHpFill_[i]->SetColor({0.7f, 0.3f, 0.8f, 1.0f}); // 紫色
+		rangedHpFill_[i]->SetPosition({x, y});
+		rangedHpFill_[i]->SetSize({barW * ratio, 8.0f});
+		rangedHpFill_[i]->Draw();
+	}
+	for (size_t i = 0; i < heavyEnemies_.size() && i < static_cast<size_t>(kMaxHeavyUi); ++i) {
+		HeavyEnemy* heavy = heavyEnemies_[i];
+		if (!heavy || heavy->IsDead())
+			continue;
+		const float barW = heavy->GetSize().x;
+		const float x = heavy->GetPosition().x - cam.x;
+		const float y = heavy->GetPosition().y - 14.0f - cam.y;
+		const float ratio = static_cast<float>(heavy->GetHp()) / static_cast<float>(heavy->GetMaxHp());
+		heavyHpBack_[i]->SetRotation(0.0f);
+		heavyHpBack_[i]->SetColor({0.1f, 0.1f, 0.1f, 0.9f});
+		heavyHpBack_[i]->SetPosition({x, y});
+		heavyHpBack_[i]->SetSize({barW, 8.0f});
+		heavyHpBack_[i]->Draw();
+		heavyHpFill_[i]->SetRotation(0.0f);
+		heavyHpFill_[i]->SetColor({0.9f, 0.6f, 0.2f, 1.0f}); // オレンジ色
+		heavyHpFill_[i]->SetPosition({x, y});
+		heavyHpFill_[i]->SetSize({barW * ratio, 8.0f});
+		heavyHpFill_[i]->Draw();
+	}
 }
 
 void GameScene::Draw() {
@@ -499,6 +629,14 @@ void GameScene::Draw() {
 	for (Flyer* flyer : flyers_) {
 		if (flyer)
 			flyer->Draw(cam);
+	}
+	for (RangedEnemy* ranged : rangedEnemies_) {
+		if (ranged)
+			ranged->Draw(cam);
+	}
+	for (HeavyEnemy* heavy : heavyEnemies_) {
+		if (heavy)
+			heavy->Draw(cam);
 	}
 	player_->Draw(cam);
 	hookStitch_->Draw(player_, cam);

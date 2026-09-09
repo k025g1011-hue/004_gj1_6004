@@ -70,8 +70,8 @@ private:
 	static inline const float kPatrolSpeed = 1.4f;
 	static inline const float kFleeSpeed = 3.8f;
 
-	// 1280px 画面基準の定数
-	static inline const float kScreenWidth = 1280.0f; // 画面横幅
+	// 2560px 画面基準の定数
+	static inline const float kScreenWidth = 2560.0f; // 画面横幅
 	static inline const float kMarginX = 100.0f;      // 画面両端からの余白
 
 	bool isCinching_ = false;

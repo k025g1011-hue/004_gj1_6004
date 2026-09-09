@@ -4,7 +4,7 @@
 
 /// <summary>
 /// 縫える対象の共通インタフェース。
-/// ボス・杭・雑魚・飛行がこれを継承する。
+/// ボス・杭・雑魚・飛行・遠距離敵がこれを継承する。
 /// </summary>
 class StitchTarget {
 public:
@@ -13,6 +13,8 @@ public:
 		kStake,
 		kFodder,
 		kFlyer,
+		kRanged,
+		kHeavy,
 	};
 
 	virtual ~StitchTarget() = default;

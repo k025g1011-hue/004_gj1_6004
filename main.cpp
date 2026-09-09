@@ -5,7 +5,7 @@
 using namespace KamataEngine;
 
 int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
-	KamataEngine::Initialize(L" 004_gj1_6004_タイトル");
+	KamataEngine::Initialize(L" 004_gj1_6004_ぬいぐるみなんてだいっきらい");
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 
 	// SceneManagerの生成と初期化

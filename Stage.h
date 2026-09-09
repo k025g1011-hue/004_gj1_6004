@@ -44,7 +44,8 @@ struct WorldDesc {
 	float groundY = 640.0f;
 	float mapTop = 0.0f;
 	float mapBottom = 720.0f;
-	float roomW = 1280.0f;
+	//float roomW = 1280.0f;
+	float roomW = 2560.0f;
 
 	KamataEngine::Vector2 spawn1{180.0f, 500.0f};
 	KamataEngine::Vector2 spawn2{1460.0f, 500.0f};
@@ -53,18 +54,21 @@ struct WorldDesc {
 
 	std::vector<EnemySpawn> fodder;
 	std::vector<EnemySpawn> flyer;
+	std::vector<EnemySpawn> ranged;
+	std::vector<EnemySpawn> heavy;
+
 	std::vector<DoorDesc> doors;
 };
 
 /// <summary>
 /// 部屋番号(1始まり)から、その部屋の左端ワールドXを返す。
 /// </summary>
-inline float RoomLeft(int section) { return static_cast<float>(section - 1) * 1280.0f; }
+inline float RoomLeft(int section) { return static_cast<float>(section - 1) * 2560.0f; }
 
 /// <summary>
 /// 部屋番号から右端ワールドXを返す。
 /// </summary>
-inline float RoomRight(int section) { return static_cast<float>(section) * 1280.0f; }
+inline float RoomRight(int section) { return static_cast<float>(section) * 2560.0f; }
 
 /// <summary>
 /// 仮マップデータ。座標を変えれば配置を差し替えられる。
@@ -72,6 +76,9 @@ inline float RoomRight(int section) { return static_cast<float>(section) * 1280.
 inline WorldDesc GetWorldDesc() {
 	WorldDesc world;
 	world.fodder = {};
+	world.flyer = {};
+	world.ranged = {};
+	world.heavy = {};
 	world.doors = {};
 	return world;
 }

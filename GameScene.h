@@ -4,6 +4,8 @@
 #include "Camera2D.h"
 #include "Enemy.h"
 #include "Flyer.h"
+#include "RangedEnemy.h"
+#include "HeavyEnemy.h"
 #include "HookStitch.h"
 #include "MapChipField.h"
 #include "Player.h"
@@ -50,9 +52,18 @@ protected:
 
 	std::vector<Enemy*> fodder_;
 	std::vector<EnemySpawn> fodderSpawns_;
+
 	std::vector<Flyer*> flyers_;
 	std::vector<EnemySpawn> flyerSpawns_;
+
+	std::vector<RangedEnemy*> rangedEnemies_;
+	std::vector<EnemySpawn> rangedEnemySpawns_;
+
+	std::vector<HeavyEnemy*> heavyEnemies_;
+	std::vector<EnemySpawn> heavyEnemySpawns_;
+
 	std::vector<StitchTarget*> targets_;
+
 
 	// 描画関連
 	std::vector<KamataEngine::Sprite*> blockSprites_;
@@ -72,6 +83,14 @@ protected:
 	static inline const int kMaxFlyerUi = 8;
 	std::array<KamataEngine::Sprite*, kMaxFlyerUi> flyerHpBack_{};
 	std::array<KamataEngine::Sprite*, kMaxFlyerUi> flyerHpFill_{};
+
+	static inline const int kMaxRangedUi = 8;
+	std::array<KamataEngine::Sprite*, kMaxRangedUi> rangedHpBack_{};
+	std::array<KamataEngine::Sprite*, kMaxRangedUi> rangedHpFill_{};
+
+	static inline const int kMaxHeavyUi = 8;
+	std::array<KamataEngine::Sprite*, kMaxHeavyUi> heavyHpBack_{};
+	std::array<KamataEngine::Sprite*, kMaxHeavyUi> heavyHpFill_{};
 
 	std::array<KamataEngine::Sprite*, 8> doorSprites_{};
 	uint32_t whiteTexture_ = 0;

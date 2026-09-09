@@ -173,10 +173,12 @@
     <ClCompile Include="Flyer.cpp" />
     <ClCompile Include="GameOverScene.cpp" />
     <ClCompile Include="GameScnen.cpp" />
+    <ClCompile Include="HeavyEnemy.cpp" />
     <ClCompile Include="HookStitch.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MapChipField.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="RangedEnemy.cpp" />
     <ClCompile Include="SceneManager.cpp" />
     <ClCompile Include="SoundManager.cpp" />
     <ClCompile Include="Stage1Scene.cpp" />
@@ -295,9 +297,11 @@
     <ClInclude Include="Flyer.h" />
     <ClInclude Include="GameOverScene.h" />
     <ClInclude Include="GameScene.h" />
+    <ClInclude Include="HeavyEnemy.h" />
     <ClInclude Include="HookStitch.h" />
     <ClInclude Include="MapChipField.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="RangedEnemy.h" />
     <ClInclude Include="SceneManager.h" />
     <ClInclude Include="SoundManager.h" />
     <ClInclude Include="Stage.h" />
