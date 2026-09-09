@@ -25,10 +25,13 @@ public:
 	AABB2 GetAABB() const;
 	KamataEngine::Vector2 GetPosition() const { return position_; }
 	KamataEngine::Vector2 GetCenter() const;
+	KamataEngine::Vector2 GetVelocity() const { return velocity_; }
+
 	void SetPosition(const KamataEngine::Vector2& position) { position_ = position; }
 	void SetMapBounds(float left, float right);
 
 	bool IsDashing() const { return dashTimer_ > 0; }
+	bool IsOnGround() const { return onGround_; }
 	bool IsInvincible() const { return invincibleTimer_ > 0; }
 	bool InvincibleJustEnded() const { return invincibleJustEnded_; }
 	void SetInvincible(int frames);

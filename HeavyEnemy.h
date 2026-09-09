@@ -1,4 +1,5 @@
 #pragma once
+#include "Enemy.h"
 #include "StitchTarget.h"
 #include <vector>
 
@@ -20,8 +21,7 @@ public:
 		kCooldown // 激突後の隙
 	};
 
-	void Initialize(uint32_t textureHandle, const KamataEngine::Vector2& position);
-
+	void Initialize(const EnemyTextureHandles& textures, const KamataEngine::Vector2& position);
 	// StitchTarget 継承用の Update 関数（Player* のデフォルト値を nullptr に設定）
 	void Update(MapChipField* mapChipField, Player* player = nullptr);
 	void Update() override { Update(nullptr, nullptr); }
@@ -52,6 +52,7 @@ public:
 	void ResetPatrolRangeToScreen();
 
 private:
+	EnemyTextureHandles textures_{};
 	KamataEngine::Sprite* sprite_ = nullptr;
 	KamataEngine::Vector2 position_{};
 	KamataEngine::Vector2 velocity_{};
@@ -82,4 +83,15 @@ private:
 
 	int chargeTimer_ = 0;
 	bool isBraking_ = false;
+
+	// 4コマアニメーション用定数・メンバ変数（1コマ: 75x100）
+	static inline const float kFrameWidth = 75.0f;
+	static inline const float kFrameHeight = 100.0f;
+	static inline const int kNumFrames = 4;
+	static inline const int kFrameInterval = 8; // 8フレームごとにコマ切り替え
+
+	// アニメーション管理用
+	int animTimer_ = 0;
+	int currentFrame_ = 0;
+	bool isFacingLeft_ = true;
 };

@@ -1,15 +1,25 @@
 #include "RangedEnemy.h"
 #include "MapChipField.h"
 #include "Player.h"
+#include <algorithm>
 #include <cmath>
 
 using namespace KamataEngine;
 
-void RangedEnemy::Initialize(uint32_t textureHandle, uint32_t bulletTextureHandle, const Vector2& position) {
-	sprite_ = Sprite::Create(textureHandle, {0.0f, 0.0f});
-	bulletTextureHandle_ = bulletTextureHandle;
-	if (bulletTextureHandle_ != 0) {
-		bulletSprite_ = Sprite::Create(bulletTextureHandle_, {0.0f, 0.0f});
+void RangedEnemy::Initialize(const EnemyTextureHandles& textures, const EnemyBulletTextureHandles& bulletTextures, const Vector2& position) {
+	textures_ = textures;
+	bulletTextures_ = bulletTextures;
+
+	if (!bulletSpriteLeft_) {
+		bulletSpriteLeft_ = Sprite::Create(bulletTextures_.left, {0.0f, 0.0f});
+	} else {
+		bulletSpriteLeft_->SetTextureHandle(bulletTextures_.left);
+	}
+
+	if (!bulletSpriteRight_) {
+		bulletSpriteRight_ = Sprite::Create(bulletTextures_.right, {0.0f, 0.0f});
+	} else {
+		bulletSpriteRight_->SetTextureHandle(bulletTextures_.right);
 	}
 
 	position_ = position;
@@ -18,6 +28,18 @@ void RangedEnemy::Initialize(uint32_t textureHandle, uint32_t bulletTextureHandl
 	moveDir_ = 1;
 	shotTimer_ = kNormalShotInterval;
 	bullets_.clear();
+	isCinching_ = false;
+
+	animTimer_ = 0;
+	currentFrame_ = 0;
+	isFacingLeft_ = true;
+
+	if (!sprite_) {
+		sprite_ = Sprite::Create(textures_.left, {0.0f, 0.0f});
+	} else {
+		sprite_->SetTextureHandle(textures_.left);
+	}
+	sprite_->SetSize(size_);
 }
 
 AABB2 RangedEnemy::GetAABB() const {
@@ -131,6 +153,19 @@ void RangedEnemy::Update(MapChipField* mapChipField, Player* player) {
 			shotTimer_ = isPinch ? kPinchShotInterval : kNormalShotInterval;
 		}
 	}
+
+	// ★ 本体向きの更新（プレイヤー方向優先）
+	if (player) {
+		isFacingLeft_ = (player->GetCenter().x < position_.x + size_.x * 0.5f);
+	} else if (moveDir_ < 0) {
+		isFacingLeft_ = true;
+	} else if (moveDir_ > 0) {
+		isFacingLeft_ = false;
+	}
+
+	// ★ 本体アニメーションタイマー更新
+	animTimer_++;
+	currentFrame_ = (animTimer_ / kFrameInterval) % kNumFrames;
 }
 
 void RangedEnemy::Shoot(Player* player) {
@@ -155,32 +190,42 @@ void RangedEnemy::Shoot(Player* player) {
 	bullet.position = spawnPos;
 	bullet.velocity = {dirX * kBulletSpeed, 0.0f};
 	bullet.isAlive = true;
+	bullet.isFacingLeft = (dirX < 0.0f); // ★ 弾の飛ぶ向き（左向きなら true）
 
 	bullets_.push_back(bullet);
 }
 
 void RangedEnemy::Draw(const Vector2& camera) {
-	// 弾の描画
-	if (bulletSprite_) {
-		for (const auto& bullet : bullets_) {
-			if (!bullet.isAlive)
-				continue;
-			bulletSprite_->SetPosition({bullet.position.x - camera.x, bullet.position.y - camera.y});
-			bulletSprite_->SetSize(bullet.size);
-			bulletSprite_->Draw();
+	// ★ 弾の描画（左右専用スプライトを使い分け）
+	for (const auto& bullet : bullets_) {
+		if (!bullet.isAlive)
+			continue;
+
+		Sprite* targetBulletSprite = bullet.isFacingLeft ? bulletSpriteLeft_ : bulletSpriteRight_;
+		if (targetBulletSprite) {
+			targetBulletSprite->SetPosition({bullet.position.x - camera.x, bullet.position.y - camera.y});
+			targetBulletSprite->SetSize(bullet.size);
+			targetBulletSprite->Draw();
 		}
 	}
 
 	if (!sprite_ || hp_ <= 0)
 		return;
 
-	// 通常時は紫色、ピンチ時は赤紫色
-	Vector4 color = {0.7f, 0.3f, 0.8f, 1.0f};
+	// ★ 本体の描画（左右向き切り替え + 横4コマ UV 切り抜き）
+	uint32_t handle = isFacingLeft_ ? textures_.left : textures_.right;
+	sprite_->SetTextureHandle(handle);
+
+	float uLeft = static_cast<float>(currentFrame_) * kFrameWidth;
+	sprite_->SetTextureRect({uLeft, 0.0f}, {kFrameWidth, kFrameHeight});
+
+	// 色設定（ピンチ時やヒットフラッシュ）
+	Vector4 color = {1.0f, 1.0f, 1.0f, 1.0f};
 	if (hp_ <= kPinchHpThreshold) {
-		color = {0.9f, 0.2f, 0.4f, 1.0f};
+		color = {1.0f, 0.7f, 0.7f, 1.0f};
 	}
 	if (hitFlash_ > 0) {
-		color = {1.0f, 1.0f, 1.0f, 1.0f};
+		color = {1.0f, 0.3f, 0.3f, 1.0f};
 	}
 
 	sprite_->SetColor(color);

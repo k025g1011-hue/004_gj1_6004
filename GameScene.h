@@ -1,6 +1,7 @@
 #pragma once
 #include "BaseScene.h"
 #include "Boss.h"
+#include "BossAnimation.h"
 #include "Camera2D.h"
 #include "Enemy.h"
 #include "Flyer.h"
@@ -28,6 +29,8 @@ struct AllEnemyTextures {
 	EnemyTextureHandles flyer;  // 飛行敵 (50x50 * 4枚)
 	EnemyTextureHandles ranged; // 遠距離敵 (60x80 * 4枚)
 	EnemyTextureHandles heavy;  // 重装備敵 (75x100 * 4枚)
+
+	EnemyBulletTextureHandles rangedBullet; // 遠距離敵の弾 (左右画像)
 };
 
 /// <summary>
@@ -56,6 +59,11 @@ protected:
 	void DrawDoors();
 	void DrawBlocks();
 
+	void UpdateBossPhase();
+
+	bool showPlayerHp_ = true;
+	bool enablePlayerDamage_ = true;
+
 	// ステージ内の雑魚敵が全滅したか確認する判定関数
 	bool IsStageCleared() const;
 
@@ -63,6 +71,7 @@ protected:
 	Player* player_ = nullptr;
 	Boss* bossA_ = nullptr;
 	Boss* bossB_ = nullptr;
+	// ※ボスが合体した後は bossA_ をそのまま合体ボスとして運用、または独立して管理します
 	Stake* stakeL_ = nullptr;
 	Stake* stakeR_ = nullptr;
 	HookStitch* hookStitch_ = nullptr;
@@ -119,6 +128,12 @@ protected:
 
 	// 敵のリソースハンドルを追加
 	AllEnemyTextures enemyTextures_{};
+
+	// ボス用アニメーションリソース一式
+	AllBossTextures bossTextures_{};
+
+	// ボスの合体・フェーズ制御フラグ
+	bool isBossPhase2_ = false;
 
 	// 全4ステージ (ステージ1~3 + ボスステージ)
 	static inline const int kMaxStage = 4;

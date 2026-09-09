@@ -289,6 +289,7 @@
     <ClInclude Include="AABB2.h" />
     <ClInclude Include="BaseScene.h" />
     <ClInclude Include="Boss.h" />
+    <ClInclude Include="BossAnimation.h" />
     <ClInclude Include="BossScene.h" />
     <ClInclude Include="Camera2D.h" />
     <ClInclude Include="ClearScene.h" />

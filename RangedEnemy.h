@@ -1,9 +1,16 @@
 #pragma once
 #include "StitchTarget.h"
+#include "Enemy.h"
 #include <vector>
 
 class MapChipField;
 class Player;
+
+// 弾用の左右テクスチャ構造体
+struct EnemyBulletTextureHandles {
+	uint32_t left = 0;
+	uint32_t right = 0;
+};
 
 // 遠距離敵が発射する弾構造体
 struct EnemyBullet {
@@ -11,6 +18,7 @@ struct EnemyBullet {
 	KamataEngine::Vector2 velocity;
 	KamataEngine::Vector2 size{50.0f, 10.0f}; // 50x10 のサイズ
 	bool isAlive = true;
+	bool isFacingLeft = true;
 
 	AABB2 GetAABB() const {
 		return {
@@ -21,8 +29,7 @@ struct EnemyBullet {
 
 class RangedEnemy : public StitchTarget {
 public:
-	void Initialize(uint32_t textureHandle, uint32_t bulletTextureHandle, const KamataEngine::Vector2& position);
-
+	void Initialize(const EnemyTextureHandles& textures, const EnemyBulletTextureHandles& bulletTextures, const KamataEngine::Vector2& position);
 	void Update(MapChipField* mapChipField, Player* player = nullptr);
 	void Update() override { Update(nullptr, nullptr); }
 
@@ -56,12 +63,24 @@ private:
 
 private:
 	KamataEngine::Sprite* sprite_ = nullptr;
-	KamataEngine::Sprite* bulletSprite_ = nullptr;
-	uint32_t bulletTextureHandle_ = 0;
+	KamataEngine::Sprite* bulletSpriteLeft_ = nullptr;
+	KamataEngine::Sprite* bulletSpriteRight_ = nullptr;
+	EnemyBulletTextureHandles bulletTextures_{};
+	EnemyTextureHandles textures_{};
 
 	KamataEngine::Vector2 position_{};
 	KamataEngine::Vector2 velocity_{};
 	KamataEngine::Vector2 size_{60.0f, 80.0f};
+
+	// アニメーション用変数
+	int animTimer_ = 0;
+	int currentFrame_ = 0;
+	bool isFacingLeft_ = true;
+
+	static inline const float kFrameWidth = 60.0f;  // 1コマの幅
+	static inline const float kFrameHeight = 80.0f; // 1コマの高さ
+	static inline const int kNumFrames = 4;         // 全コマ数 (4枚コマ)
+	static inline const int kFrameInterval = 8;     // コマ切り替え速度
 
 	static inline const int kMaxHp = 3;
 	int hp_ = kMaxHp;

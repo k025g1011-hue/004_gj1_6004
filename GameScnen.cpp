@@ -47,10 +47,12 @@ void GameScene::ClearCurrentActors() {
 	bossA_ = nullptr;
 	delete bossB_;
 	bossB_ = nullptr;
+
 	delete stakeL_;
 	stakeL_ = nullptr;
 	delete stakeR_;
 	stakeR_ = nullptr;
+
 	for (Enemy* enemy : fodder_) {
 		delete enemy;
 	}
@@ -62,6 +64,7 @@ void GameScene::ClearCurrentActors() {
 	}
 	flyers_.clear();
 	flyerSpawns_.clear();
+
 	for (RangedEnemy* ranged : rangedEnemies_) {
 		delete ranged;
 	}
@@ -74,6 +77,7 @@ void GameScene::ClearCurrentActors() {
 	heavyEnemies_.clear();
 	heavyEnemySpawns_.clear();
 
+	// 縫い合わせ・攻撃対象リストのクリア
 	targets_.clear();
 	world_.doors.clear();
 
@@ -113,11 +117,11 @@ void GameScene::Initialize() {
 	bgLeftTextures_[2] = TextureManager::Load("./Resources/stage/Stage3_L.png");
 	bgRightTextures_[2] = TextureManager::Load("./Resources/stage/Stage3_R.png");
 
-	// ボスステージの背景読み込み（画像追加時に解凍）
-	/*
-	bgLeftTextures_[kBossStageIndex]  = TextureManager::Load("./Resources/stage/boss_left.png");
-	bgRightTextures_[kBossStageIndex] = TextureManager::Load("./Resources/stage/boss_right.png");
-	*/
+	// ボスステージの背景読み込み
+	
+	bgLeftTextures_[kBossStageIndex]  = TextureManager::Load("./Resources/stage/StageBoss_L.png");
+	bgRightTextures_[kBossStageIndex] = TextureManager::Load("./Resources/stage/StageBoss_R.png");
+	
 
 	// スプライト生成は SetStage(index) で行うため、ここではポインタクリアのみ
 	bgLeftSprite_ = nullptr;
@@ -146,6 +150,48 @@ void GameScene::Initialize() {
 	// 4. 重装備敵 (75x100 * 4枚)
 	enemyTextures_.heavy.left = TextureManager::Load("./Resources/enemy/heavy_L.png");
 	enemyTextures_.heavy.right = TextureManager::Load("./Resources/enemy/heavy_R.png");
+
+	enemyTextures_.rangedBullet.left = TextureManager::Load("./Resources/enemy/Needle_L.png");
+	enemyTextures_.rangedBullet.right = TextureManager::Load("./Resources/enemy/Needle_R.png");
+
+	// --- 1. ボスA (第1フェーズ) テクスチャ読み込み ---
+	// 歩き (800x300 - 4コマ)
+	bossTextures_.bossA.walk.left = TextureManager::Load("./Resources/boss/BlackBoss_L.png");
+	bossTextures_.bossA.walk.right = TextureManager::Load("./Resources/boss/BlackBoss_R.png");
+
+	// パンチ (800x300 - 4コマ)
+	bossTextures_.bossA.punch.left = TextureManager::Load("./Resources/boss/BlackBossPunch_L.png");
+	bossTextures_.bossA.punch.right = TextureManager::Load("./Resources/boss/BlackBossPunch_R.png");
+
+	// ジャンププレス (1600x300 - 8コマ)
+	bossTextures_.bossA.press = TextureManager::Load("./Resources/boss/BlackBossPress.png");
+
+	// --- 2. ボスB (第1フェーズ) テクスチャ読み込み ---
+	// 歩き (800x300 - 4コマ)
+	bossTextures_.bossB.walk.left = TextureManager::Load("./Resources/boss/PinkBoss_L.png");
+	bossTextures_.bossB.walk.right = TextureManager::Load("./Resources/boss/PinkBoss_R.png");
+
+	// パンチ (800x300 - 4コマ)
+	bossTextures_.bossB.punch.left = TextureManager::Load("./Resources/boss/PinkBossPunch_L.png");
+	bossTextures_.bossB.punch.right = TextureManager::Load("./Resources/boss/PinkBossPunch_R.png");
+
+	// ジャンププレス (1600x300 - 8コマ)
+	bossTextures_.bossB.press = TextureManager::Load("./Resources/boss/PinkBossPress.png");
+
+	// --- 3. 合体ボス (第2フェーズ) テクスチャ読み込み ---
+	// 歩き (800x300 - 4コマ)
+	bossTextures_.combined.walk.left = TextureManager::Load("./Resources/boss/BBoss_L.png");
+	bossTextures_.combined.walk.right = TextureManager::Load("./Resources/boss/BBoss_R.png");
+
+	// パンチ (800x300 - 4コマ)
+	bossTextures_.combined.punch.left = TextureManager::Load("./Resources/boss/BBossPunch_L.png");
+	bossTextures_.combined.punch.right = TextureManager::Load("./Resources/boss/BBossPunch_R.png");
+
+	// ジャンププレス (1600x300 - 8コマ)
+	bossTextures_.combined.press = TextureManager::Load("./Resources/boss/BBossPress.png");
+
+	// --- 4. 落下物 (40x40 ボタン) テクスチャ読み込み ---
+	bossTextures_.buttonTexture = TextureManager::Load("./Resources/boss/FallingObject.png");
 
 	backSprite_ = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
 
@@ -209,14 +255,6 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 		delete block.sprite;
 	}
 	blockObjects_.clear();
-
-	/* 旧方式のクリア（念のため残す場合はコメント解除）
-	for (auto* sprite : blockSprites_) {
-	    delete sprite;
-	}
-	blockSprites_.clear();
-	blockPositions_.clear();
-	*/
 
 	ClearCurrentActors();
 	if (hookStitch_) {
@@ -284,7 +322,7 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 				spawn.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 80.0f);
 
 				RangedEnemy* ranged = new RangedEnemy();
-				ranged->Initialize(whiteTexture_, whiteTexture_, spawn);
+				ranged->Initialize(enemyTextures_.ranged, enemyTextures_.rangedBullet, spawn);
 				rangedEnemies_.push_back(ranged);
 				targets_.push_back(ranged);
 			} else if (type == MapChipType::kHeavy) {
@@ -293,7 +331,7 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 				spawn.position.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 100.0f);
 
 				HeavyEnemy* heavy = new HeavyEnemy();
-				heavy->Initialize(whiteTexture_, spawn.position);
+				heavy->Initialize(enemyTextures_.heavy, spawn.position);
 				heavyEnemies_.push_back(heavy);
 				heavyEnemySpawns_.push_back(spawn);
 				targets_.push_back(heavy);
@@ -317,13 +355,17 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 				targets_.push_back(stake);
 			} else if (type == MapChipType::kBoss) {
 				Vector2 spawn = cell;
-				spawn.y = mapChipField_->SnapFeetToFloor(cell.x + 8.0f, 120.0f);
+				// ボスの高さ（300.0f）に合わせて足元を接地
+				spawn.y = mapChipField_->SnapFeetToFloor(cell.x + 8.0f, 300.0f);
+
 				Boss* boss = new Boss();
-				const Vector4 color = (bossCount == 0) ? Vector4{0.95f, 0.25f, 0.25f, 1.0f} : Vector4{0.95f, 0.55f, 0.2f, 1.0f};
-				boss->Initialize(whiteTexture_, spawn, color, spawn.x - 160.0f, spawn.x + 160.0f);
 				if (bossCount == 0) {
+					// 1体目: ボスA（黒）
+					boss->Initialize(Boss::BossID::kBossA, bossTextures_.bossA, spawn, bossTextures_.buttonTexture);
 					bossA_ = boss;
 				} else {
+					// 2体目: ボスB（ピンク）
+					boss->Initialize(Boss::BossID::kBossB, bossTextures_.bossB, spawn, bossTextures_.buttonTexture);
 					bossB_ = boss;
 				}
 				++bossCount;
@@ -423,8 +465,9 @@ void GameScene::CheckStitchOverlaps() {
 	}
 	AABB2 playerAABB = player_->GetAABB();
 	for (StitchTarget* target : targets_) {
-		if (!target || !target->CanStitch() || target->IsDead())
+		if (!target || !target->CanStitch() || target->IsDead()) {
 			continue;
+		}
 		if (IsCollision(playerAABB, target->GetAABB())) {
 			hookStitch_->TryStitch(target);
 		}
@@ -432,13 +475,17 @@ void GameScene::CheckStitchOverlaps() {
 }
 
 void GameScene::CheckPlayerHits() {
+	if (!enablePlayerDamage_) {
+		return;
+	}
 	if (!player_ || player_->IsDead() || player_->IsInvincible() || player_->IsDashing() || hookStitch_->IsCinching()) {
 		return;
 	}
 	AABB2 playerAABB = player_->GetAABB();
 	for (StitchTarget* target : targets_) {
-		if (!target || target->IsDead())
+		if (!target || target->IsDead()) {
 			continue;
+		}
 		if (target->GetKind() != StitchTarget::Kind::kBoss && target->GetKind() != StitchTarget::Kind::kFodder && target->GetKind() != StitchTarget::Kind::kFlyer &&
 		    target->GetKind() != StitchTarget::Kind::kRanged && target->GetKind() != StitchTarget::Kind::kHeavy) {
 			continue;
@@ -449,17 +496,16 @@ void GameScene::CheckPlayerHits() {
 			break;
 		}
 	}
-	// 2. 遠距離敵が撃った弾との衝突判定
 	for (RangedEnemy* ranged : rangedEnemies_) {
-		if (!ranged || ranged->IsDead())
+		if (!ranged || ranged->IsDead()) {
 			continue;
-
+		}
 		for (auto& bullet : ranged->GetBullets()) {
-			if (!bullet.isAlive)
+			if (!bullet.isAlive) {
 				continue;
-
+			}
 			if (IsCollision(playerAABB, bullet.GetAABB())) {
-				bullet.isAlive = false; // 弾消滅
+				bullet.isAlive = false;
 				player_->OnDamaged();
 				hookStitch_->Clear();
 				return;
@@ -467,7 +513,47 @@ void GameScene::CheckPlayerHits() {
 		}
 	}
 }
+void GameScene::UpdateBossPhase() {
+	if (isBossPhase2_) {
+		return;
+	}
 
+	// ボスが両方存在しない場合はスキップ
+	if (!bossA_ && !bossB_) {
+		return;
+	}
+
+	bool isBossADead = bossA_ && bossA_->IsDead();
+	bool isBossBDead = bossB_ && bossB_->IsDead();
+
+	if (isBossADead || isBossBDead) {
+		// 生き残る方と倒れる方を特定
+		Boss* survivor = isBossADead ? bossB_ : bossA_;
+		Boss* victim = isBossADead ? bossA_ : bossB_;
+
+		if (survivor) {
+			// 生き残ったボスの位置で合体処理を実行
+			Vector2 combinePos = survivor->GetPosition();
+			survivor->CombineTo(combinePos, bossTextures_.combined);
+		}
+
+		if (victim) {
+			// 縫い合わせ・攻撃対象リストから倒れたボスを削除
+			targets_.erase(std::remove(targets_.begin(), targets_.end(), victim), targets_.end());
+			delete victim;
+		}
+
+		// ポインタの整理
+		if (isBossADead) {
+			bossA_ = nullptr;
+		} else {
+			bossB_ = nullptr;
+		}
+
+		// 第2フェーズフラグをON
+		isBossPhase2_ = true;
+	}
+}
 void GameScene::PushPlayerOutOfBosses() {
 	AABB2 p = player_->GetAABB();
 	Vector2 pos = player_->GetPosition();
@@ -506,14 +592,20 @@ void GameScene::Update() {
 	player_->Update(mapChipField_);
 	TryEnterNextArea();
 
+	// ボスの更新（プレイヤーの参照を渡す場合）
 	if (bossA_)
-		bossA_->Update(mapChipField_);
+		bossA_->Update(mapChipField_, player_);
 	if (bossB_)
-		bossB_->Update(mapChipField_);
+		bossB_->Update(mapChipField_, player_);
+
+	// 片方が倒れた際の合体フェーズ切り替え処理
+	UpdateBossPhase();
+
 	if (stakeL_)
 		stakeL_->Update();
 	if (stakeR_)
 		stakeR_->Update();
+
 	for (Enemy* enemy : fodder_) {
 		if (enemy)
 			enemy->Update(mapChipField_, player_);
@@ -530,14 +622,17 @@ void GameScene::Update() {
 		if (heavy)
 			heavy->Update(mapChipField_, player_);
 	}
+
 	// 敵同士の押し返し・反転処理
 	Enemy::CheckEnemyCollisions(fodder_);
 
 	CheckStitchOverlaps();
 	hookStitch_->Update(player_, targets_);
+
 	if (player_->InvincibleJustEnded()) {
 		PushPlayerOutOfBosses();
 	}
+
 	CheckPlayerHits();
 	UpdateCamera();
 
@@ -589,15 +684,18 @@ void GameScene::DrawDoors() {
 
 void GameScene::DrawHp() {
 	const Vector2 cam = camera_.GetOffset();
-	for (int i = 0; i < player_->GetMaxHp(); ++i) {
-		Sprite* sprite = playerHpSprites_[i];
-		if (!sprite)
-			continue;
-		sprite->SetRotation(0.0f);
-		sprite->SetPosition({24.0f + static_cast<float>(i) * 36.0f, 20.0f});
-		sprite->SetSize({28.0f, 28.0f});
-		sprite->SetColor(i < player_->GetHp() ? Vector4{0.35f, 0.85f, 1.0f, 1.0f} : Vector4{0.2f, 0.25f, 0.3f, 1.0f});
-		sprite->Draw();
+	if (showPlayerHp_) {
+		for (int i = 0; i < player_->GetMaxHp(); ++i) {
+			Sprite* sprite = playerHpSprites_[i];
+			if (!sprite) {
+				continue;
+			}
+			sprite->SetRotation(0.0f);
+			sprite->SetPosition({24.0f + static_cast<float>(i) * 36.0f, 20.0f});
+			sprite->SetSize({28.0f, 28.0f});
+			sprite->SetColor(i < player_->GetHp() ? Vector4{0.35f, 0.85f, 1.0f, 1.0f} : Vector4{0.2f, 0.25f, 0.3f, 1.0f});
+			sprite->Draw();
+		}
 	}
 
 	auto drawBossBar = [&](Boss* boss, Sprite* back, Sprite* fill) {
@@ -728,10 +826,15 @@ void GameScene::Draw() {
 		stakeL_->Draw(cam);
 	if (stakeR_)
 		stakeR_->Draw(cam);
-	if (bossA_)
+
+	if (bossA_) {
 		bossA_->Draw(cam);
-	if (bossB_)
+		bossA_->DrawDebugFrame(cam); // ★ デバッグ枠描画
+	}
+	if (bossB_) {
 		bossB_->Draw(cam);
+		bossB_->DrawDebugFrame(cam);
+	}
 	for (Enemy* enemy : fodder_) {
 		if (enemy)
 			enemy->Draw(cam);

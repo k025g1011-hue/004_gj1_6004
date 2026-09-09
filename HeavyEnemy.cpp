@@ -7,8 +7,9 @@
 
 using namespace KamataEngine;
 
-void HeavyEnemy::Initialize(uint32_t textureHandle, const Vector2& position) {
-	sprite_ = Sprite::Create(textureHandle, {0.0f, 0.0f});
+// ★ 引数を (const EnemyTextureHandles& textures, const Vector2& position) に変更
+void HeavyEnemy::Initialize(const EnemyTextureHandles& textures, const Vector2& position) {
+	textures_ = textures;
 	position_ = position;
 	hp_ = kMaxHp;
 	velocity_ = {};
@@ -23,6 +24,19 @@ void HeavyEnemy::Initialize(uint32_t textureHandle, const Vector2& position) {
 	cooldownTimer_ = 0;
 	chargeTimer_ = 0;
 	isBraking_ = false;
+
+	// ★ アニメーション用タイマー初期化
+	animTimer_ = 0;
+	currentFrame_ = 0;
+	isFacingLeft_ = true;
+
+	// ★ スプライト初期化
+	if (!sprite_) {
+		sprite_ = Sprite::Create(textures_.left, {0.0f, 0.0f});
+	} else {
+		sprite_->SetTextureHandle(textures_.left);
+	}
+	sprite_->SetSize(size_);
 }
 
 void HeavyEnemy::ResetPatrolRangeToScreen() {
@@ -117,7 +131,7 @@ void HeavyEnemy::Update(MapChipField* mapChipField, Player* player) {
 	}
 
 	case State::kCharge: {
-		// ★ プレイヤーが目の前から消えた（背後に回った/死んだ）か判定
+		// プレイヤーが目の前から消えた（背後に回った/死んだ）か判定
 		if (!isBraking_) {
 			bool playerBehind = false;
 			if (!player || player->IsDead()) {
@@ -137,7 +151,7 @@ void HeavyEnemy::Update(MapChipField* mapChipField, Player* player) {
 
 		// ブレーキ中の処理（徐々に減速）
 		if (isBraking_) {
-			velocity_.x *= 0.98f; // 毎フレーム減速（ズザーッと滑る表現）
+			velocity_.x *= 0.98f; // 毎フレーム減速
 		}
 
 		position_.x += velocity_.x;
@@ -155,7 +169,7 @@ void HeavyEnemy::Update(MapChipField* mapChipField, Player* player) {
 			}
 		}
 
-		// 完全に停止した（|velocity.x| < 0.5）、時間切れ、または壁衝突で隙へ
+		// 完全に停止した、時間切れ、または壁衝突で隙へ
 		if (std::abs(velocity_.x) < 0.5f || chargeTimer_ <= 0 || hitWall) {
 			state_ = State::kCooldown;
 			cooldownTimer_ = 120; // 隙の時間
@@ -199,6 +213,13 @@ void HeavyEnemy::Update(MapChipField* mapChipField, Player* player) {
 			}
 		}
 	}
+
+	// ★ 向きの更新（dir_ に基づいて左右決定）
+	isFacingLeft_ = (dir_ < 0);
+
+	// ★ 4コマアニメーションタイマー更新
+	animTimer_++;
+	currentFrame_ = (animTimer_ / kFrameInterval) % kNumFrames;
 }
 
 void HeavyEnemy::Draw(const Vector2& camera) {
@@ -206,6 +227,15 @@ void HeavyEnemy::Draw(const Vector2& camera) {
 		return;
 	}
 
+	// ★ 1. 向きに応じて左右テクスチャの切り替え
+	uint32_t handle = isFacingLeft_ ? textures_.left : textures_.right;
+	sprite_->SetTextureHandle(handle);
+
+	// ★ 2. 横4コマ UV 切り抜き設定（1コマ 75x100）
+	float uLeft = static_cast<float>(currentFrame_) * kFrameWidth;
+	sprite_->SetTextureRect({uLeft, 0.0f}, {kFrameWidth, kFrameHeight});
+
+	// 色設定（通常時・ピンチ時・被弾フラッシュ）
 	Vector4 color = (hp_ <= 2) ? Vector4{0.9f, 0.35f, 0.35f, 1.0f} : Vector4{0.45f, 0.5f, 0.6f, 1.0f};
 	if (hitFlash_ > 0) {
 		color = {1.0f, 1.0f, 1.0f, 1.0f};

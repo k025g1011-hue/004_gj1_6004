@@ -1,10 +1,7 @@
 #include "ClearScene.h"
 #include "SoundManager.h"
 
-ClearScene::~ClearScene() {
-	delete backgroundSprite_;
-	delete spaceSprite_;
-}
+ClearScene::~ClearScene() { delete bgSprite_; }
 
 void ClearScene::Initialize() {
 	// フラグ初期化
@@ -15,16 +12,16 @@ void ClearScene::Initialize() {
 
 	SoundManager::GetInstance()->PlayBGM("Clear", true, 0.3f);
 
-	// 背景画像の読み込みとスプライト生成
-	// textureHandleBG_ = TextureManager::Load("result_bg.png");
-	backgroundSprite_ = KamataEngine::Sprite::Create(textureHandleBG_, {0.0f, 0.0f});
+	// クリア画像のロード（ファイル名は画像素材に合わせて変更してください）
+	bgTextureHandle_ = TextureManager::Load("GameClear.png");
 
-	// UI画像の読み込みと配置
-	// textureHandleSpace_ = TextureManager::Load("spaceToTitle.png");
-	spaceSprite_ = KamataEngine::Sprite::Create(textureHandleSpace_, {0.0f, 0.0f});
-
-	spaceSprite_->SetSize({300.0f, 40.0f});
-	spaceSprite_->SetPosition({(1280.0f - 300.0f) / 2.0f, 620.0f});
+	// 背景スプライトの生成・初期化（1280x720）
+	if (!bgSprite_) {
+		bgSprite_ = KamataEngine::Sprite::Create(bgTextureHandle_, {0.0f, 0.0f});
+	} else {
+		bgSprite_->SetTextureHandle(bgTextureHandle_);
+	}
+	bgSprite_->SetSize({1280.0f, 720.0f});
 }
 
 void ClearScene::Update() {
@@ -47,14 +44,9 @@ void ClearScene::Draw() {
 	// 2Dスプライト描画前処理
 	Sprite::PreDraw();
 
-	// 背景画像を描画
-	if (backgroundSprite_) {
-		backgroundSprite_->Draw();
-	}
-
-	// UIスプライトを描画
-	if (spaceSprite_) {
-		spaceSprite_->Draw();
+	// 背景描画
+	if (bgSprite_) {
+		bgSprite_->Draw();
 	}
 
 	Sprite::PostDraw();

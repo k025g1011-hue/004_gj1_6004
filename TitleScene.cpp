@@ -1,10 +1,7 @@
 #include "TitleScene.h"
 #include "SoundManager.h"
 
-TitleScene::~TitleScene() {
-	delete spaceSprite_;
-	delete bgSprite_;
-}
+TitleScene::~TitleScene() { delete bgSprite_; }
 
 void TitleScene::Initialize() {
 	// フラグ初期化（BaseSceneのメンバ変数）
@@ -15,22 +12,24 @@ void TitleScene::Initialize() {
 	// カメラ初期化
 	camera_.Initialize();
 
-	// UI画像の読み込み・設定
-	spaceSprite_ = KamataEngine::Sprite::Create(textureHandleSpace_, {0.0f, 0.0f});
-	bgSprite_ = KamataEngine::Sprite::Create(bgTextureHandle_, {0.0f, 0.0f});
+	// 背景テクスチャのロード
+	bgTextureHandle_ = TextureManager::Load("title.png");
 
-	spaceSprite_->SetSize({300.0f, 40.0f});
-	spaceSprite_->SetPosition({(1280.0f - 300.0f) / 2.0f, 550.0f});
+	// 背景スプライトの生成・初期化（1280x720）
+	if (!bgSprite_) {
+		bgSprite_ = KamataEngine::Sprite::Create(bgTextureHandle_, {0.0f, 0.0f});
+	} else {
+		bgSprite_->SetTextureHandle(bgTextureHandle_);
+	}
+	bgSprite_->SetSize({1280.0f, 720.0f});
 }
 
 void TitleScene::Update() {
-	blinkTimer_ += 1.0f / 60.0f;
-
-	// SPACEキーが押されたら「このシーンは終わり！」と主張するだけ
+	// SPACEキーが押されたら次のシーンへ移行
 	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
 		SoundManager::GetInstance()->PlaySE("Select", 0.5f);
 
-		// SceneManager が暗転フェードアウト ➔ 次のシーン移行 ➔ 明転フェードイン を全自動で行う
+		// SceneManager が暗転フェードアウト ➔ 次のシーン移行 ➔ 明転フェードイン
 		isFinished_ = true;
 	}
 }
@@ -38,11 +37,9 @@ void TitleScene::Update() {
 void TitleScene::Draw() {
 	KamataEngine::Sprite::PreDraw();
 
+	// 背景描画
 	if (bgSprite_) {
 		bgSprite_->Draw();
-	}
-	if (spaceSprite_) {
-		spaceSprite_->Draw();
 	}
 
 	KamataEngine::Sprite::PostDraw();
