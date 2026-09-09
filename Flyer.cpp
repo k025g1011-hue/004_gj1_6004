@@ -7,8 +7,8 @@
 
 using namespace KamataEngine;
 
-void Flyer::Initialize(uint32_t textureHandle, const Vector2& position, float minX, float maxX) {
-	sprite_ = Sprite::Create(textureHandle, {0.0f, 0.0f});
+void Flyer::Initialize(const EnemyTextureHandles& textures, const Vector2& position, float minX, float maxX) {
+	textures_ = textures;
 	position_ = position;
 	basePatrolPos_ = position;
 	spawnY_ = position.y; // 初期スポーン時の高度を記憶
@@ -18,6 +18,11 @@ void Flyer::Initialize(uint32_t textureHandle, const Vector2& position, float mi
 	state_ = State::kPatrol;
 	sinAngle_ = 0.0f;
 	attackTimer_ = 0;
+	isCinching_ = false;
+
+	animTimer_ = 0;
+	currentFrame_ = 0;
+	isFacingLeft_ = true;
 
 	// 180〜360フレーム（3秒〜6秒）の範囲で最初のランダム間隔を決定
 	std::uniform_int_distribution<int> dist(180, 360);
@@ -29,6 +34,13 @@ void Flyer::Initialize(uint32_t textureHandle, const Vector2& position, float mi
 		minX_ = minX;
 		maxX_ = maxX;
 	}
+
+	if (!sprite_) {
+		sprite_ = Sprite::Create(textures_.left, {0.0f, 0.0f});
+	} else {
+		sprite_->SetTextureHandle(textures_.left);
+	}
+	sprite_->SetSize(size_);
 }
 
 void Flyer::ResetPatrolRangeToSection() {
@@ -68,6 +80,8 @@ void Flyer::Update(MapChipField* mapChipField, Player* player) {
 		--hitFlash_;
 	}
 
+	float prevX = position_.x; // ★ 移動前の X 座標を保持（向きの検出用）
+
 	// HPが減っている場合は狂暴化
 	float speedMult = (hp_ < kMaxHp) ? 1.5f : 1.0f;
 	float attackIntervalMult = (hp_ < kMaxHp) ? 0.7f : 1.0f;
@@ -79,20 +93,31 @@ void Flyer::Update(MapChipField* mapChipField, Player* player) {
 		velocity_.x *= 0.90f;
 		velocity_.y *= 0.90f;
 		basePatrolPos_.x = position_.x;
-		return;
+	} else {
+		switch (state_) {
+		case State::kPatrol:
+			UpdatePatrol(player, speedMult, attackIntervalMult);
+			break;
+		case State::kCharge:
+			UpdateCharge(player, speedMult);
+			break;
+		case State::kReturn:
+			UpdateReturn(speedMult);
+			break;
+		}
 	}
 
-	switch (state_) {
-	case State::kPatrol:
-		UpdatePatrol(player, speedMult, attackIntervalMult);
-		break;
-	case State::kCharge:
-		UpdateCharge(player, speedMult);
-		break;
-	case State::kReturn:
-		UpdateReturn(speedMult);
-		break;
+	// ★ 1フレームあたりの X 軸の移動量から左右の向きを判定
+	float moveX = position_.x - prevX;
+	if (moveX < -0.01f) {
+		isFacingLeft_ = true;
+	} else if (moveX > 0.01f) {
+		isFacingLeft_ = false;
 	}
+
+	// ★ アニメーションコマの更新 (50x50, 4枚コマ)
+	animTimer_++;
+	currentFrame_ = (animTimer_ / kFrameInterval) % kNumFrames;
 }
 
 void Flyer::UpdatePatrol(Player* player, float speedMult, float attackIntervalMult) {
@@ -177,13 +202,21 @@ void Flyer::Draw(const Vector2& camera) {
 		return;
 	}
 
-	// 飛行敵は空色/紫系。HPが減ると赤みがかる（狂暴化表現）
-	Vector4 color = {0.4f, 0.8f, 0.95f, 1.0f};
+	// ★ 向きに応じてテクスチャを切り替え
+	uint32_t handle = isFacingLeft_ ? textures_.left : textures_.right;
+	sprite_->SetTextureHandle(handle);
+
+	// ★ 横4コマのアニメーション切り抜き（UV 50x50）を設定
+	float uLeft = static_cast<float>(currentFrame_) * kFrameWidth;
+	sprite_->SetTextureRect({uLeft, 0.0f}, {kFrameWidth, kFrameHeight});
+
+	// 通常時は白、HP減少時は赤みがかる表現
+	Vector4 color = {1.0f, 1.0f, 1.0f, 1.0f};
 	if (hp_ < kMaxHp) {
-		color = {0.95f, 0.4f, 0.4f, 1.0f};
+		color = {1.0f, 0.6f, 0.6f, 1.0f};
 	}
 	if (hitFlash_ > 0) {
-		color = {1.0f, 1.0f, 1.0f, 1.0f};
+		color = {1.0f, 0.3f, 0.3f, 1.0f};
 	}
 
 	sprite_->SetColor(color);

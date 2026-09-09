@@ -6,18 +6,33 @@
 
 namespace {
 std::map<std::string, MapChipType> mapChipTable = {
-    {"0", MapChipType::kBlank },
-    {"1", MapChipType::kBlock },
-    {"2", MapChipType::kPlayer},
-    {"3", MapChipType::kFodder},
-    {"4", MapChipType::kDoor  },
-    {"5", MapChipType::kStake },
-    {"6", MapChipType::kBoss  },
-    {"7", MapChipType::kFlyer  },
-    {"8", MapChipType::kRanged },
-    {"9", MapChipType::kHeavy },
+    {"0",  MapChipType::kBlank          },
+    {"1",  MapChipType::kBlock          },
+    {"2",  MapChipType::kPlayer         },
+    {"3",  MapChipType::kFodder         },
+    {"4",  MapChipType::kDoor           },
+    {"5",  MapChipType::kStake          },
+    {"6",  MapChipType::kBoss           },
+    {"7",  MapChipType::kFlyer          },
+    {"8",  MapChipType::kRanged         },
+    {"9",  MapChipType::kHeavy          },
+    {"10", MapChipType::kBuildingBlocksC},
+    {"11", MapChipType::kBuildingBlocksL},
+    {"12", MapChipType::kBuildingBlocksR},
+    {"13", MapChipType::kLegoBlocksC    },
+    {"14", MapChipType::kLegoBlocksL    },
+    {"15", MapChipType::kLegoBlocksR    },
+    {"16", MapChipType::kButtonBlocksC  },
+    {"17", MapChipType::kButtonBlocksL  },
+    {"18", MapChipType::kButtonBlocksR  },
 };
-}
+
+// 一方向（空中）ブロックか判定するヘルパー
+bool IsOneWayBlock(MapChipType type) { return (type >= MapChipType::kBuildingBlocksC && type <= MapChipType::kButtonBlocksR); }
+
+// 壁または床として機能するブロック種別か判定するヘルパー
+bool IsSolidBlock(MapChipType type) { return type == MapChipType::kBlock || IsOneWayBlock(type); }
+} // namespace
 
 void MapChipField::LoadMapChipCsv(const std::string& filePath) {
 	data_.clear();
@@ -93,7 +108,7 @@ bool MapChipField::OverlapsBlock(const AABB2& aabb) const {
 	IndexSet maxI = GetMapChipIndexSetByPosition({aabb.max.x - 0.01f, aabb.max.y - 0.01f});
 	for (int y = minI.yIndex; y <= maxI.yIndex; ++y) {
 		for (int x = minI.xIndex; x <= maxI.xIndex; ++x) {
-			if (GetMapChipTypeByIndex(x, y) == MapChipType::kBlock) {
+			if (IsSolidBlock(GetMapChipTypeByIndex(x, y))) {
 				return true;
 			}
 		}
@@ -102,13 +117,11 @@ bool MapChipField::OverlapsBlock(const AABB2& aabb) const {
 }
 
 bool MapChipField::ResolveBlockX(AABB2& aabb, float& outX, float velocityX) const {
-	if (!OverlapsBlock(aabb)) {
-		return false;
-	}
 	IndexSet minI = GetMapChipIndexSetByPosition(aabb.min);
 	IndexSet maxI = GetMapChipIndexSetByPosition({aabb.max.x - 0.01f, aabb.max.y - 0.01f});
 	for (int y = minI.yIndex; y <= maxI.yIndex; ++y) {
 		for (int x = minI.xIndex; x <= maxI.xIndex; ++x) {
+			// ★ 横押し戻しは通常ブロック (kBlock = 1) のみ。一方向ブロックは横通過可能。
 			if (GetMapChipTypeByIndex(x, y) != MapChipType::kBlock) {
 				continue;
 			}
@@ -126,24 +139,40 @@ bool MapChipField::ResolveBlockX(AABB2& aabb, float& outX, float velocityX) cons
 
 bool MapChipField::ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool& landed) const {
 	landed = false;
-	if (!OverlapsBlock(aabb)) {
-		return false;
-	}
+
 	IndexSet minI = GetMapChipIndexSetByPosition(aabb.min);
 	IndexSet maxI = GetMapChipIndexSetByPosition({aabb.max.x - 0.01f, aabb.max.y - 0.01f});
+
 	for (int y = minI.yIndex; y <= maxI.yIndex; ++y) {
 		for (int x = minI.xIndex; x <= maxI.xIndex; ++x) {
-			if (GetMapChipTypeByIndex(x, y) != MapChipType::kBlock) {
+			MapChipType type = GetMapChipTypeByIndex(x, y);
+
+			if (!IsSolidBlock(type)) {
 				continue;
 			}
+
 			Rect rect = GetRectByIndex(x, y);
+
+			// 下降中（着地処理）
 			if (velocityY >= 0.0f) {
+				// ★ 一方向ブロックの場合、移動前の足元がブロック上面より下にあったら突き抜け中とみなしてスルー
+				const float previousFootY = aabb.max.y - velocityY;
+				if (IsOneWayBlock(type) && previousFootY > rect.top + 4.0f) {
+					continue;
+				}
+
 				outY = rect.top - (aabb.max.y - aabb.min.y);
 				landed = true;
-			} else {
-				outY = rect.bottom;
+				return true;
 			}
-			return true;
+			// 上昇中（天井ぶつかり処理）
+			else {
+				// ★ 通常ブロック (kBlock) のみ頭をぶつける。一方向ブロックは上に通過できる。
+				if (type == MapChipType::kBlock) {
+					outY = rect.bottom;
+					return true;
+				}
+			}
 		}
 	}
 	return false;
@@ -152,7 +181,8 @@ bool MapChipField::ResolveBlockY(AABB2& aabb, float& outY, float velocityY, bool
 float MapChipField::SnapFeetToFloor(float x, float height) const {
 	IndexSet index = GetMapChipIndexSetByPosition({x + 1.0f, 0.0f});
 	for (uint32_t y = 0; y < numVertical_; ++y) {
-		if (GetMapChipTypeByIndex(index.xIndex, static_cast<int>(y)) == MapChipType::kBlock) {
+		MapChipType type = GetMapChipTypeByIndex(index.xIndex, static_cast<int>(y));
+		if (IsSolidBlock(type)) {
 			Rect rect = GetRectByIndex(index.xIndex, static_cast<int>(y));
 			return rect.top - height;
 		}

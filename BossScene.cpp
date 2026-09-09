@@ -4,7 +4,7 @@
 
 void BossScene::Initialize() {
 	GameScene::Initialize();
-
+	SetStage(3); // ボスステージ背景
 	// ボスステージ用マップCSVを読み込んで再構築
 	BuildWorld("Resources/boss_stage.csv");
 }

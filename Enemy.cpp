@@ -5,14 +5,19 @@
 
 using namespace KamataEngine;
 
-void Enemy::Initialize(uint32_t textureHandle, const Vector2& position, float minX, float maxX) {
-	sprite_ = Sprite::Create(textureHandle, {0.0f, 0.0f});
+void Enemy::Initialize(const EnemyTextureHandles& textures, const Vector2& position, float minX, float maxX) {
+	textures_ = textures;
 	position_ = position;
 	hp_ = kMaxHp;
 	velocity_ = {};
 	patrolDir_ = 1;
 	state_ = State::kPatrol;
 	fleeTimer_ = 0;
+	isCinching_ = false;
+
+	animTimer_ = 0;
+	currentFrame_ = 0;
+	isFacingLeft_ = true;
 
 	// 範囲指定がない場合は 1280px 基準で自動設定
 	if (minX == 0.0f && maxX == 0.0f) {
@@ -21,6 +26,14 @@ void Enemy::Initialize(uint32_t textureHandle, const Vector2& position, float mi
 		minX_ = minX;
 		maxX_ = maxX;
 	}
+
+	// スプライトが未作成なら生成、作成済みならテクスチャのみ更新
+	if (!sprite_) {
+		sprite_ = Sprite::Create(textures_.left, {0.0f, 0.0f});
+	} else {
+		sprite_->SetTextureHandle(textures_.left);
+	}
+	sprite_->SetSize(size_);
 }
 
 void Enemy::ResetPatrolRangeToScreen() {
@@ -134,6 +147,17 @@ void Enemy::Update(MapChipField* mapChipField, Player* player) {
 			}
 		}
 	}
+
+	// ★ 進行方向（patrolDir_）に基づいて左右の向きを設定
+	if (patrolDir_ < 0) {
+		isFacingLeft_ = true;
+	} else if (patrolDir_ > 0) {
+		isFacingLeft_ = false;
+	}
+
+	// ★ アニメーションタイマーとコマ番号の更新
+	animTimer_++;
+	currentFrame_ = (animTimer_ / kFrameInterval) % kNumFrames;
 }
 
 void Enemy::Draw(const Vector2& camera) {
@@ -141,13 +165,21 @@ void Enemy::Draw(const Vector2& camera) {
 		return;
 	}
 
-	// 通常時は緑色、逃走中は黄色に変化
-	Vector4 color = {0.45f, 0.9f, 0.4f, 1.0f};
+	// ★ 向きに応じてテクスチャを切り替え
+	uint32_t handle = isFacingLeft_ ? textures_.left : textures_.right;
+	sprite_->SetTextureHandle(handle);
+
+	// ★ 横4コマのアニメーション切り抜き（UV）を設定
+	float uLeft = static_cast<float>(currentFrame_) * kFrameWidth;
+	sprite_->SetTextureRect({uLeft, 0.0f}, {kFrameWidth, kFrameHeight});
+
+	// 通常時は白、逃走中は黄色に変化、被弾時は赤み
+	Vector4 color = {1.0f, 1.0f, 1.0f, 1.0f};
 	if (state_ == State::kFlee) {
 		color = {0.95f, 0.8f, 0.2f, 1.0f};
 	}
 	if (hitFlash_ > 0) {
-		color = {1.0f, 1.0f, 1.0f, 1.0f};
+		color = {1.0f, 0.3f, 0.3f, 1.0f};
 	}
 
 	sprite_->SetColor(color);

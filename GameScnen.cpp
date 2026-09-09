@@ -5,6 +5,8 @@ using namespace KamataEngine;
 
 GameScene::~GameScene() {
 	ClearCurrentActors();
+	delete bgLeftSprite_;
+	delete bgRightSprite_;
 	delete player_;
 	delete hookStitch_;
 	delete mapChipField_;
@@ -75,17 +77,76 @@ void GameScene::ClearCurrentActors() {
 	targets_.clear();
 	world_.doors.clear();
 
-	for (Sprite* sprite : blockSprites_) {
-		delete sprite;
+	for (auto& block : blockObjects_) {
+		delete block.sprite;
 	}
-	blockSprites_.clear();
-	blockPositions_.clear();
+	blockObjects_.clear();
 }
 
 void GameScene::Initialize() {
 	isFinished_ = false;
 
 	whiteTexture_ = TextureManager::Load("white.png");
+
+	// ステージ1用（積み木風ブロックなど）
+	blockTextures_[MapChipType::kBuildingBlocksC] = TextureManager::Load("./Resources/blocks/building_c.png");
+	blockTextures_[MapChipType::kBuildingBlocksL] = TextureManager::Load("./Resources/blocks/building_l.png");
+	blockTextures_[MapChipType::kBuildingBlocksR] = TextureManager::Load("./Resources/blocks/building_r.png");
+
+	// ステージ2用（レゴ風ブロックなど）
+	blockTextures_[MapChipType::kLegoBlocksC] = TextureManager::Load("./Resources/blocks/lego_c.png");
+	blockTextures_[MapChipType::kLegoBlocksL] = TextureManager::Load("./Resources/blocks/lego_l.png");
+	blockTextures_[MapChipType::kLegoBlocksR] = TextureManager::Load("./Resources/blocks/lego_r.png");
+
+	// ステージ3用（ボタン風ブロックなど）
+	blockTextures_[MapChipType::kButtonBlocksC] = TextureManager::Load("./Resources/blocks/button_c.png");
+	blockTextures_[MapChipType::kButtonBlocksL] = TextureManager::Load("./Resources/blocks/button_l.png");
+	blockTextures_[MapChipType::kButtonBlocksR] = TextureManager::Load("./Resources/blocks/button_r.png");
+
+	// --- ステージ1~3 の背景読み込み ---
+	bgLeftTextures_[0] = TextureManager::Load("./Resources/stage/Stage1_L.png");
+	bgRightTextures_[0] = TextureManager::Load("./Resources/stage/Stage1_R.png");
+
+	bgLeftTextures_[1] = TextureManager::Load("./Resources/stage/Stage2_L.png");
+	bgRightTextures_[1] = TextureManager::Load("./Resources/stage/Stage2_R.png");
+
+	bgLeftTextures_[2] = TextureManager::Load("./Resources/stage/Stage3_L.png");
+	bgRightTextures_[2] = TextureManager::Load("./Resources/stage/Stage3_R.png");
+
+	// ボスステージの背景読み込み（画像追加時に解凍）
+	/*
+	bgLeftTextures_[kBossStageIndex]  = TextureManager::Load("./Resources/stage/boss_left.png");
+	bgRightTextures_[kBossStageIndex] = TextureManager::Load("./Resources/stage/boss_right.png");
+	*/
+
+	// スプライト生成は SetStage(index) で行うため、ここではポインタクリアのみ
+	bgLeftSprite_ = nullptr;
+	bgRightSprite_ = nullptr;
+
+	// プレイヤー画像（スプライトシート）の読み込み
+	playerTextures_.walkRight = TextureManager::Load("./Resources/player/PlayerWalk_R.png");
+	playerTextures_.walkLeft = TextureManager::Load("./Resources/player/PlayerWalk_L.png");
+	playerTextures_.attackRight = TextureManager::Load("./Resources/player/PlayerAttack_R.png");
+	playerTextures_.attackLeft = TextureManager::Load("./Resources/player/PlayerAttack_L.png");
+	playerTextures_.deadRight = TextureManager::Load("./Resources/player/PlayerDeath_R.png");
+	playerTextures_.deadLeft = TextureManager::Load("./Resources/player/PlayerDeath_L.png");
+
+	// 1. 雑魚敵 (60x80 * 4枚)
+	enemyTextures_.fodder.left = TextureManager::Load("./Resources/enemy/fodder_L.png");
+	enemyTextures_.fodder.right = TextureManager::Load("./Resources/enemy/fodder_R.png");
+
+	// 2. 飛行敵 (50x50 * 4枚)
+	enemyTextures_.flyer.left = TextureManager::Load("./Resources/enemy/flyer_L.png");
+	enemyTextures_.flyer.right = TextureManager::Load("./Resources/enemy/flyer_R.png");
+
+	// 3. 遠距離敵 (60x80 * 4枚)
+	enemyTextures_.ranged.left = TextureManager::Load("./Resources/enemy/ranged_L.png");
+	enemyTextures_.ranged.right = TextureManager::Load("./Resources/enemy/ranged_R.png");
+
+	// 4. 重装備敵 (75x100 * 4枚)
+	enemyTextures_.heavy.left = TextureManager::Load("./Resources/enemy/heavy_L.png");
+	enemyTextures_.heavy.right = TextureManager::Load("./Resources/enemy/heavy_R.png");
+
 	backSprite_ = Sprite::Create(whiteTexture_, {0.0f, 0.0f});
 
 	for (int i = 0; i < 3; ++i) {
@@ -119,14 +180,44 @@ void GameScene::Initialize() {
 	}
 
 	player_ = new Player();
-	player_->Initialize(whiteTexture_);
+	player_->Initialize(playerTextures_);
 	hookStitch_ = new HookStitch();
 	hookStitch_->Initialize(whiteTexture_);
 
 	mapChipField_ = new MapChipField();
 }
 
+void GameScene::SetStage(int stageIndex) {
+	if (stageIndex < 0 || stageIndex >= kMaxStage) {
+		return;
+	}
+
+	currentStageIndex_ = stageIndex;
+
+	// 古いスプライトを解放
+	delete bgLeftSprite_;
+	delete bgRightSprite_;
+
+	// 指定ステージのテクスチャで新規生成
+	bgLeftSprite_ = Sprite::Create(bgLeftTextures_[currentStageIndex_], {0.0f, 0.0f});
+	bgRightSprite_ = Sprite::Create(bgRightTextures_[currentStageIndex_], {1280.0f, 0.0f});
+}
+
 void GameScene::BuildWorld(const std::string& csvPath) {
+	// 前回生成したブロックオブジェクト（スプライト）を解放・クリア
+	for (auto& block : blockObjects_) {
+		delete block.sprite;
+	}
+	blockObjects_.clear();
+
+	/* 旧方式のクリア（念のため残す場合はコメント解除）
+	for (auto* sprite : blockSprites_) {
+	    delete sprite;
+	}
+	blockSprites_.clear();
+	blockPositions_.clear();
+	*/
+
 	ClearCurrentActors();
 	if (hookStitch_) {
 		hookStitch_->Clear();
@@ -152,13 +243,20 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 			const MapChipType type = mapChipField_->GetMapChipTypeByIndex(ix, iy);
 			const Vector2 cell = mapChipField_->GetMapChipPositionByIndex(ix, iy);
 
+			// 1（通常ブロック）および 10〜18（一方向ブロック）の生成処理
 			if (type == MapChipType::kBlock) {
-				blockSprites_.push_back(Sprite::Create(whiteTexture_, {0.0f, 0.0f}));
-				blockPositions_.push_back(cell);
+				continue;
+			} else if (blockTextures_.count(type) > 0) {
+				// 10〜18 の追加ブロック（指定画像で描画する場合）
+				BlockObject obj;
+				obj.position = cell;
+				obj.sprite = Sprite::Create(blockTextures_[type], cell);
+				blockObjects_.push_back(obj);
 			} else if (type == MapChipType::kPlayer) {
 				if (!foundPlayerSpawn) {
 					playerSpawnPos = cell;
-					playerSpawnPos.y = mapChipField_->SnapFeetToFloor(cell.x + 8.0f, 64.0f);
+					// プレイヤー（高さ100px）の足元合わせ
+					playerSpawnPos.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 100.0f);
 					foundPlayerSpawn = true;
 				}
 			} else if (type == MapChipType::kFodder) {
@@ -167,22 +265,21 @@ void GameScene::BuildWorld(const std::string& csvPath) {
 				spawn.position.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 80.0f);
 
 				Enemy* enemy = new Enemy();
-				// 位置情報のみを渡し、1280px画面基準の自動巡回エリアを適用
-				enemy->Initialize(whiteTexture_, spawn.position);
+				enemy->Initialize(enemyTextures_.fodder, spawn.position);
 				fodder_.push_back(enemy);
 				fodderSpawns_.push_back(spawn);
 				targets_.push_back(enemy);
 
 			} else if (type == MapChipType::kFlyer) {
 				EnemySpawn spawn;
-				spawn.position = cell; // 空中の高さを維持するためスナップしない
+				spawn.position = cell; // 空中の高さを維持
 
 				Flyer* flyer = new Flyer();
-				flyer->Initialize(whiteTexture_, spawn.position);
+				flyer->Initialize(enemyTextures_.flyer, spawn.position);
 				flyers_.push_back(flyer);
 				flyerSpawns_.push_back(spawn);
 				targets_.push_back(flyer);
-			} else if (type == MapChipType::kRanged) { 
+			} else if (type == MapChipType::kRanged) {
 				Vector2 spawn = cell;
 				spawn.y = mapChipField_->SnapFeetToFloor(cell.x + 10.0f, 80.0f);
 
@@ -301,16 +398,17 @@ void GameScene::TryEnterNextArea() {
 	if (enterWait_ > 0)
 		return;
 
-	// 雑魚敵が全滅していなければドアに入れない
 	if (!IsStageCleared())
 		return;
 
-	const Vector2 center = player_->GetCenter();
+	const Vector2 center = player_->GetCenter(); // プレイヤーの中心
 	for (const DoorDesc& door : world_.doors) {
 		const float doorCenterX = door.x + door.width * 0.5f;
 		const float doorCenterY = door.y + door.height * 0.5f;
+
+		// 判定サイズを 0.25f (16px) から 0.75f (48px) に緩和
 		const float hitW = door.width * 0.25f;
-		const float hitH = door.height * 0.25f;
+		const float hitH = door.height * 0.75f;
 
 		if (std::abs(center.x - doorCenterX) <= hitW && std::abs(center.y - doorCenterY) <= hitH) {
 			isFinished_ = true;
@@ -450,15 +548,25 @@ void GameScene::Update() {
 
 void GameScene::DrawBlocks() {
 	const Vector2 cam = camera_.GetOffset();
-	for (size_t i = 0; i < blockSprites_.size(); ++i) {
-		Sprite* sprite = blockSprites_[i];
-		if (!sprite)
+
+	for (const auto& block : blockObjects_) {
+		if (!block.sprite)
 			continue;
-		sprite->SetRotation(0.0f);
-		sprite->SetColor({0.22f, 0.24f, 0.28f, 1.0f});
-		sprite->SetPosition({blockPositions_[i].x - cam.x, blockPositions_[i].y - cam.y});
-		sprite->SetSize({MapChipField::kTileWidth, MapChipField::kTileHeight});
-		sprite->Draw();
+
+		block.sprite->SetRotation(0.0f);
+
+		// カメラオフセットを適用して描画位置を調整
+		block.sprite->SetPosition({block.position.x - cam.x, block.position.y - cam.y});
+		block.sprite->SetSize({MapChipField::kTileWidth, MapChipField::kTileHeight});
+
+		/*
+		   ※もし 1 の通常ブロック（白テクスチャ）だけ色を付けたい場合は
+		   必要に応じて SetColor を設定してください。
+		   画像テクスチャ(10~18)をそのまま描画する場合はデフォルトの色(1,1,1,1)でOKです。
+		*/
+		// block.sprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+		block.sprite->Draw();
 	}
 }
 
@@ -606,11 +714,13 @@ void GameScene::Draw() {
 	const Vector2 cam = camera_.GetOffset();
 
 	Sprite::PreDraw();
-	if (backSprite_) {
-		backSprite_->SetColor({0.08f, 0.09f, 0.12f, 1.0f});
-		backSprite_->SetPosition({0.0f, 0.0f});
-		backSprite_->SetSize({1280.0f, 720.0f});
-		backSprite_->Draw();
+	if (bgLeftSprite_) {
+		bgLeftSprite_->SetPosition({0.0f - cam.x, 0.0f - cam.y});
+		bgLeftSprite_->Draw();
+	}
+	if (bgRightSprite_) {
+		bgRightSprite_->SetPosition({1280.0f - cam.x, 0.0f - cam.y});
+		bgRightSprite_->Draw();
 	}
 	DrawBlocks();
 	DrawDoors();

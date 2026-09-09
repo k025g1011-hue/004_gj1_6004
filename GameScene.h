@@ -11,9 +11,24 @@
 #include "Player.h"
 #include "Stage.h"
 #include "Stake.h"
+#include <map>
 #include <array>
 #include <string>
 #include <vector>
+
+// 描画用ブロック構造体
+struct BlockObject {
+	KamataEngine::Sprite* sprite = nullptr;
+	KamataEngine::Vector2 position{};
+};
+
+// 各敵タイプのテクスチャまとめ
+struct AllEnemyTextures {
+	EnemyTextureHandles fodder; // 雑魚敵 (60x80 * 4枚)
+	EnemyTextureHandles flyer;  // 飛行敵 (50x50 * 4枚)
+	EnemyTextureHandles ranged; // 遠距離敵 (60x80 * 4枚)
+	EnemyTextureHandles heavy;  // 重装備敵 (75x100 * 4枚)
+};
 
 /// <summary>
 /// ゲームプレイシーン（共通基底クラス）
@@ -24,6 +39,9 @@ public:
 	void Initialize() override;
 	void Update() override;
 	void Draw() override;
+
+	// ステージ背景切り替え用関数
+	void SetStage(int stageIndex);
 
 protected:
 	// 引数で各ステージの CSV パスを受け取って構築
@@ -66,8 +84,10 @@ protected:
 
 
 	// 描画関連
-	std::vector<KamataEngine::Sprite*> blockSprites_;
-	std::vector<KamataEngine::Vector2> blockPositions_;
+	std::map<MapChipType, uint32_t> blockTextures_; // チップ種別ごとのテクスチャハンドル
+	std::vector<BlockObject> blockObjects_;         // 生成された各ブロックのスプライトと座標
+	/*std::vector<KamataEngine::Sprite*> blockSprites_;
+	std::vector<KamataEngine::Vector2> blockPositions_;*/
 
 	KamataEngine::Sprite* backSprite_ = nullptr;
 	std::array<KamataEngine::Sprite*, 3> playerHpSprites_{};
@@ -94,6 +114,26 @@ protected:
 
 	std::array<KamataEngine::Sprite*, 8> doorSprites_{};
 	uint32_t whiteTexture_ = 0;
+
+	PlayerTextureHandles playerTextures_{};
+
+	// 敵のリソースハンドルを追加
+	AllEnemyTextures enemyTextures_{};
+
+	// 全4ステージ (ステージ1~3 + ボスステージ)
+	static inline const int kMaxStage = 4;
+
+	// ボスステージのインデックス（呼び出しやすくするため定義）
+	static inline const int kBossStageIndex = 3;
+
+	// 各ステージの L / R テクスチャ＆スプライト
+	uint32_t bgLeftTextures_[kMaxStage]{};
+	uint32_t bgRightTextures_[kMaxStage]{};
+
+	KamataEngine::Sprite* bgLeftSprite_ = nullptr;
+	KamataEngine::Sprite* bgRightSprite_ = nullptr;
+
+	int currentStageIndex_ = 0;
 
 	// ステージ・データ状態
 	WorldDesc world_{};

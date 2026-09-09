@@ -44,7 +44,6 @@ struct WorldDesc {
 	float groundY = 640.0f;
 	float mapTop = 0.0f;
 	float mapBottom = 720.0f;
-	//float roomW = 1280.0f;
 	float roomW = 2560.0f;
 
 	KamataEngine::Vector2 spawn1{180.0f, 500.0f};

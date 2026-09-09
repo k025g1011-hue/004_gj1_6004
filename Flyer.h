@@ -1,7 +1,8 @@
 #pragma once
+#include "Enemy.h"
 #include "StitchTarget.h"
-#include <vector>
 #include <random>
+#include <vector>
 
 class MapChipField;
 class Player;
@@ -14,7 +15,7 @@ public:
 		kReturn  // 攻撃後の復帰
 	};
 
-	void Initialize(uint32_t textureHandle, const KamataEngine::Vector2& position, float minX = 0.0f, float maxX = 0.0f);
+	void Initialize(const EnemyTextureHandles& textures, const KamataEngine::Vector2& position, float minX = 0.0f, float maxX = 0.0f);
 
 	void Update(MapChipField* mapChipField, Player* player = nullptr);
 	void Update() override { Update(nullptr, nullptr); }
@@ -46,10 +47,21 @@ private:
 
 private:
 	KamataEngine::Sprite* sprite_ = nullptr;
+	EnemyTextureHandles textures_{}; // 左右のアニメーションテクスチャ
 	KamataEngine::Vector2 position_{};
 	KamataEngine::Vector2 velocity_{};
 	KamataEngine::Vector2 basePatrolPos_{}; // 巡回の基準座標
 	KamataEngine::Vector2 size_{50.0f, 50.0f};
+
+	// アニメーション管理用
+	int animTimer_ = 0;
+	int currentFrame_ = 0;
+	bool isFacingLeft_ = true;
+
+	static inline const float kFrameWidth = 50.0f;  // 1コマの幅
+	static inline const float kFrameHeight = 50.0f; // 1コマの高さ
+	static inline const int kNumFrames = 4;         // 全コマ数 (4枚コマ)
+	static inline const int kFrameInterval = 8;     // コマ切り替え速度
 
 	static inline const int kMaxHp = 2;
 	int hp_ = kMaxHp;
@@ -73,6 +85,8 @@ private:
 	int nextAttackInterval_ = 180;
 
 	float spawnY_ = 0.0f; // 初期スポーン時の高度を保持する変数
+
+	bool isCinching_ = false;
 
 	// 乱数生成器
 	std::mt19937 randomEngine_{std::random_device{}()};

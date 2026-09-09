@@ -50,5 +50,5 @@ private:
 	static inline const float kCinchSpeed = 18.0f;
 
 	static inline const float kMaxLinkDistance = 700.0f; // 隣り合う2点間の最大限界距離 (px)
-	static inline const float kMaxTotalLength = 1400.0f;  // 糸全体の合計最大限界距離 (px)
+	static inline const float kMaxTotalLength = 2000.0f;  // 糸全体の合計最大限界距離 (px)
 };

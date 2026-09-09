@@ -6,16 +6,25 @@
 #include <vector>
 
 enum class MapChipType {
-	kBlank = 0,
-	kBlock = 1,
-	kPlayer = 2,
-	kFodder = 3,
-	kDoor = 4,
-	kStake = 5,
-	kBoss = 6,
-	kFlyer = 7,
-	kRanged = 8,
-	kHeavy = 9,
+	kBlank = 0,            // 空白
+	kBlock = 1,	           // ブロック
+	kPlayer = 2,           // プレイヤー
+	kFodder = 3,           // 雑魚敵
+	kDoor = 4,	           // ドア
+	kStake = 5,	           // 杭
+	kBoss = 6,	           // ボス
+	kFlyer = 7,	           // 飛行敵
+	kRanged = 8,           // 遠距離敵
+	kHeavy = 9,	           // 重装備敵
+	kBuildingBlocksC = 10, // stage1 BlocksC
+	kBuildingBlocksL = 11, // stage1 BlocksL
+	kBuildingBlocksR = 12, // stage1 BlocksR
+	kLegoBlocksC = 13,     // stage2 BlocksC
+	kLegoBlocksL = 14,     // stage2 BlocksL
+	kLegoBlocksR = 15,     // stage2 BlocksR
+	kButtonBlocksC = 16,   // stage3 BlocksC
+	kButtonBlocksL = 17,   // stage3 BlocksL
+	kButtonBlocksR = 18,   // stage3 BlocksR
 };
 
 class MapChipField {

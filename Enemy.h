@@ -2,6 +2,14 @@
 #include "StitchTarget.h"
 #include <vector>
 
+#ifndef ENEMY_TEXTURE_HANDLES_DEFINED
+#define ENEMY_TEXTURE_HANDLES_DEFINED
+struct EnemyTextureHandles {
+	uint32_t left = 0;
+	uint32_t right = 0;
+};
+#endif
+
 class MapChipField;
 class Player;
 
@@ -12,8 +20,8 @@ public:
 		kFlee,   // ピンチ：パニック逃走
 	};
 
-	// minX, maxX のデフォルト引数を 0.0f に設定（0 の場合は 1280px 基準で自動設定）
-	void Initialize(uint32_t textureHandle, const KamataEngine::Vector2& position, float minX = 0.0f, float maxX = 0.0f);
+	// テクスチャハンドルを単一の uint32_t から EnemyTextureHandles 構造体に変更
+	void Initialize(const EnemyTextureHandles& textures, const KamataEngine::Vector2& position, float minX = 0.0f, float maxX = 0.0f);
 
 	// StitchTarget 継承用の単一 Update 関数（Player* のデフォルト値を nullptr に設定）
 	void Update(MapChipField* mapChipField, Player* player = nullptr);
@@ -49,10 +57,21 @@ private:
 
 private:
 	KamataEngine::Sprite* sprite_ = nullptr;
+	EnemyTextureHandles textures_{}; // 追加：左右のアニメーションテクスチャ
 	KamataEngine::Vector2 position_{};
 	KamataEngine::Vector2 velocity_{};
 	//KamataEngine::Vector2 size_{48.0f, 56.0f};
 	KamataEngine::Vector2 size_{60.0f, 80.0f};
+
+	// アニメーション管理用
+	int animTimer_ = 0;
+	int currentFrame_ = 0;
+	bool isFacingLeft_ = true;
+
+	static inline const float kFrameWidth = 60.0f;  // 1コマの幅
+	static inline const float kFrameHeight = 80.0f; // 1コマの高さ
+	static inline const int kNumFrames = 4;         // 全コマ数 (4枚コマ)
+	static inline const int kFrameInterval = 8;     // コマ切り替え速度 (8フレームごと)
 
 	static inline const int kMaxHp = 2;
 	int hp_ = kMaxHp;
